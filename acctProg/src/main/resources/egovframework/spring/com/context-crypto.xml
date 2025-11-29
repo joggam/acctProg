@@ -13,8 +13,8 @@
 	cryptoPropertyLocation : 설정파일 암복호화 경로 (선택) 기본값은 'classpath:/egovframework/egovProps/globals.properties'
 	-->
     <egov-crypto:config id="egovCryptoConfig" 
-    	initial="true"
-    	crypto="true"
+    	initial="false"
+    	crypto="false"
     	algorithm="SHA-256"
     	algorithmKey="egovframe"
     	algorithmKeyHash="gdyYs/IZqY86VcWhT8emCYfqY1ahw2vtLG+/FzNqtrQ="
