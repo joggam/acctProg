@@ -1,4 +1,4 @@
-package com.hometax;
+package com.hometax.com;
 
 import java.io.File;
 
@@ -6,20 +6,18 @@ import org.openqa.selenium.WebDriver;
 
 public class HometaxMain {
 
-    public static void main(String[] args) {
+    public static void main(
+            String[] args) {
 
         WebDriver driver = null;
 
         try {
 
             // =====================================================
-            // 로그인 정보
-            //
-            // 실제 운영에서는 DB/환경변수/암호화 설정 등으로
-            // 분리하는 것을 권장
+            // ★ 홈택스 로그인 정보
             // =====================================================
 
-            String hometaxId =
+        	String hometaxId =
                     "";
 
             String hometaxPassword =
@@ -41,9 +39,9 @@ public class HometaxMain {
 
 
             // =====================================================
-            // ★ 시스템에서 받을 값
+            // ★ 나중에는 시스템에서 전달받을 값
             //
-            // 지금은 테스트이므로 직접 지정
+            // 현재 테스트
             // =====================================================
 
             int year = 2025;
@@ -53,6 +51,9 @@ public class HometaxMain {
 
             // =====================================================
             // 1. 홈택스 로그인
+            //
+            // Chrome은 Headless로 실행됨
+            // 화면에 브라우저가 뜨지 않음
             // =====================================================
 
             driver =
@@ -66,7 +67,7 @@ public class HometaxMain {
 
 
             // =====================================================
-            // 2. 홈택스 서비스
+            // 2. 서비스 생성
             // =====================================================
 
             HometaxService hometax =
@@ -77,7 +78,7 @@ public class HometaxMain {
 
 
             // =====================================================
-            // 3. 시스템에서 전달받은 연도/분기로 조회
+            // 3. 조회 + Excel 다운로드
             // =====================================================
 
             File excelFile =
@@ -88,61 +89,93 @@ public class HometaxMain {
 
 
             // =====================================================
-            // 4. 결과
+            // 4. 최종 결과
             // =====================================================
 
             System.out.println();
-            System.out.println(
-                    "======================================"
-            );
-
-            System.out.println(
-                    "작업 완료"
-            );
 
             System.out.println(
                     "======================================"
             );
 
             System.out.println(
-                    "조회 기간 = "
+                    "전체 작업 완료"
+            );
+
+            System.out.println(
+                    "======================================"
+            );
+
+
+            System.out.println(
+                    "조회기간 = "
                     + year
                     + "년 "
                     + quarter
                     + "분기"
             );
 
+
             System.out.println(
                     "파일명 = "
                     + excelFile.getName()
             );
 
+
             System.out.println(
-                    "파일 경로 = "
+                    "파일경로 = "
                     + excelFile.getAbsolutePath()
             );
 
 
         } catch (Exception e) {
 
+            System.out.println();
+
+            System.out.println(
+                    "======================================"
+            );
+
             System.out.println(
                     "프로그램 실행 실패"
             );
 
+            System.out.println(
+                    "======================================"
+            );
+
+
             e.printStackTrace();
+
 
         } finally {
 
-            /*
-             * 개발 중에는 화면 확인을 위해
-             * Chrome을 닫지 않습니다.
-             *
-             * 운영할 때 활성화:
-             */
+            // =====================================================
+            // 작업 성공/실패 관계없이 Chrome 종료
+            //
+            // Headless이므로 화면에는 안 보이지만
+            // Chrome 프로세스 자체를 종료함
+            // =====================================================
 
-            // if (driver != null) {
-            //     driver.quit();
-            // }
+            if (driver != null) {
+
+                try {
+
+                    driver.quit();
+
+
+                    System.out.println(
+                            "Chrome 종료 완료"
+                    );
+
+
+                } catch (Exception e) {
+
+                    System.out.println(
+                            "Chrome 종료 중 오류 발생"
+                    );
+                }
+            }
         }
     }
 }

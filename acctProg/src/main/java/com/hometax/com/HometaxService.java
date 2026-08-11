@@ -1,12 +1,10 @@
-package com.hometax;
+package com.hometax.com;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -40,7 +38,9 @@ public class HometaxService {
             String downloadDir) {
 
         this.driver = driver;
-        this.downloadDir = downloadDir;
+
+        this.downloadDir =
+                downloadDir;
 
         this.wait =
                 new WebDriverWait(
@@ -51,24 +51,41 @@ public class HometaxService {
 
 
     // =============================================================
-    // 연도 / 분기 조회 → Excel 다운로드
+    // 메인
+    //
+    // 예:
+    // downloadExcel(2025, 1)
+    // downloadExcel(2024, 3)
     // =============================================================
 
     public File downloadExcel(
             int year,
             int quarter) {
 
-        validatePeriod(year, quarter);
+        validatePeriod(
+                year,
+                quarter
+        );
+
 
         try {
 
             System.out.println();
-            System.out.println("======================================");
+
             System.out.println(
-                    year + "년 "
-                    + quarter + "분기 조회 시작"
+                    "======================================"
             );
-            System.out.println("======================================");
+
+            System.out.println(
+                    year
+                    + "년 "
+                    + quarter
+                    + "분기 조회 시작"
+            );
+
+            System.out.println(
+                    "======================================"
+            );
 
 
             // =====================================================
@@ -77,25 +94,29 @@ public class HometaxService {
 
             driver.get(TARGET_URL);
 
+
             System.out.println(
                     "[WORK-1] 대상 메뉴 이동 완료"
             );
 
-            wait.until(d ->
-                    d.findElements(
-                            By.cssSelector("body *")
-                    ).size() > 30
-            );
 
-            sleep(1500);
+            wait.until(d ->
+
+                d.findElements(
+                    By.cssSelector(
+                        "body *"
+                    )
+                ).size() > 30
+            );
 
 
             // =====================================================
-            // 2. 상호명 가져오기
+            // 2. 상호명
             // =====================================================
 
             String businessName =
                     findBusinessName();
+
 
             System.out.println(
                     "[WORK-2] 상호명 = "
@@ -109,15 +130,17 @@ public class HometaxService {
 
             selectQuarterPeriod();
 
+
             System.out.println(
                     "[WORK-3] 조회기간 = 분기별"
             );
 
-            sleep(500);
+
+            sleep(300);
 
 
             // =====================================================
-            // 4. 연도 선택
+            // 4. 연도
             // =====================================================
 
             selectComboByOrder(
@@ -126,16 +149,19 @@ public class HometaxService {
                     String.valueOf(year)
             );
 
+
             System.out.println(
                     "[WORK-4] 연도 = "
-                    + year + "년"
+                    + year
+                    + "년"
             );
 
-            sleep(500);
+
+            sleep(300);
 
 
             // =====================================================
-            // 5. 분기 선택
+            // 5. 분기
             // =====================================================
 
             selectComboByOrder(
@@ -144,36 +170,46 @@ public class HometaxService {
                     String.valueOf(quarter)
             );
 
+
             System.out.println(
                     "[WORK-5] 분기 = "
-                    + quarter + "분기"
+                    + quarter
+                    + "분기"
             );
 
-            sleep(500);
+
+            sleep(300);
 
 
             // =====================================================
-            // 6. 조회
+            // 6. 조회 버튼
+            //
+            // 실제 확인된 ID 사용
             // =====================================================
 
             WebElement searchButton =
-                    findVisibleButton("조회");
+                    wait.until(
+                        ExpectedConditions
+                            .elementToBeClickable(
+                                By.id(
+                                    "mf_txppWframe_btnSearch"
+                                )
+                            )
+                    );
 
-            if (searchButton == null) {
-
-                throw new RuntimeException(
-                        "조회 버튼을 찾지 못했습니다."
-                );
-            }
 
             System.out.println(
-                    "[WORK-6] 조회 버튼 ID = "
-                    + searchButton.getAttribute("id")
+                    "[WORK-6] 조회 버튼 발견"
             );
 
-            scrollTo(searchButton);
+
+            scrollTo(
+                    searchButton
+            );
+
 
             searchButton.click();
+
 
             System.out.println(
                     "[WORK-7] 조회 클릭 완료"
@@ -181,10 +217,11 @@ public class HometaxService {
 
 
             // =====================================================
-            // 7. 조회 결과 대기
+            // 7. 조회 완료 대기
             // =====================================================
 
             waitForSearchResult();
+
 
             System.out.println(
                     "[WORK-8] 조회 완료"
@@ -193,49 +230,30 @@ public class HometaxService {
 
             // =====================================================
             // 8. 내려받기
+            //
+            // 실제 확인된 ID 사용
             // =====================================================
 
             WebElement downloadButton =
-                    findVisibleButton(
-                            "내려받기"
+                    wait.until(
+                        ExpectedConditions
+                            .elementToBeClickable(
+                                By.id(
+                                    "mf_txppWframe_trigger12"
+                                )
+                            )
                     );
-
-            if (downloadButton == null) {
-                downloadButton =
-                        findVisibleButton(
-                                "다운로드"
-                        );
-            }
-
-            if (downloadButton == null) {
-                downloadButton =
-                        findVisibleButton(
-                                "엑셀 내려받기"
-                        );
-            }
-
-            if (downloadButton == null) {
-                downloadButton =
-                        findVisibleButton(
-                                "엑셀다운로드"
-                        );
-            }
-
-            if (downloadButton == null) {
-
-                throw new RuntimeException(
-                        "내려받기 버튼을 찾지 못했습니다."
-                );
-            }
 
 
             System.out.println(
-                    "[WORK-9] 내려받기 버튼 ID = "
-                    + downloadButton.getAttribute("id")
+                    "[WORK-9] 내려받기 버튼 발견"
             );
 
 
-            scrollTo(downloadButton);
+            scrollTo(
+                    downloadButton
+            );
+
 
             downloadButton.click();
 
@@ -246,7 +264,7 @@ public class HometaxService {
 
 
             // =====================================================
-            // 9. 팝업의 엑셀 버튼
+            // 9. 팝업의 "엑셀" 버튼
             // =====================================================
 
             WebElement excelButton =
@@ -276,39 +294,55 @@ public class HometaxService {
 
                             try {
 
-                                if (element.isDisplayed()
-                                        && element.isEnabled()) {
+                                if (!element.isDisplayed()
+                                        || !element.isEnabled()) {
 
-                                    WebElement clickable =
-                                            findClickableParent(
-                                                    element
-                                            );
+                                    continue;
+                                }
 
-                                    if (clickable != null
-                                            && clickable.isDisplayed()
-                                            && clickable.isEnabled()) {
 
-                                        return clickable;
-                                    }
+                                WebElement clickable =
+                                        findClickableParent(
+                                                element
+                                        );
+
+
+                                if (clickable != null
+                                        && clickable.isDisplayed()
+                                        && clickable.isEnabled()) {
+
+                                    return clickable;
                                 }
 
                             } catch (Exception ignored) {
                             }
                         }
 
+
                         return null;
                     });
 
 
             System.out.println(
-                    "[WORK-11] 엑셀 버튼 ID = "
-                    + excelButton.getAttribute("id")
+                    "[WORK-11] 엑셀 버튼 발견"
             );
 
 
-            scrollTo(excelButton);
+            System.out.println(
+                    "엑셀 버튼 ID = "
+                    + excelButton.getAttribute(
+                            "id"
+                    )
+            );
+
+
+            scrollTo(
+                    excelButton
+            );
+
 
             excelButton.click();
+
 
             System.out.println(
                     "[WORK-12] 엑셀 클릭 완료"
@@ -317,21 +351,24 @@ public class HometaxService {
 
             // =====================================================
             // 10. Alert
+            //
             // "파일을 받으시겠습니까?"
             // =====================================================
 
             Alert alert =
                     wait.until(
-                        ExpectedConditions.alertIsPresent()
+                        ExpectedConditions
+                            .alertIsPresent()
                     );
 
 
             System.out.println(
-                    "[WORK-13] Alert = "
+                    "[WORK-13] Alert 내용 = "
                     + alert.getText()
             );
 
 
+            // 실제 다운로드 직전 시간
             long downloadStart =
                     System.currentTimeMillis();
 
@@ -340,17 +377,19 @@ public class HometaxService {
 
 
             System.out.println(
-                    "[WORK-14] 다운로드 확인 완료"
+                    "[WORK-14] 다운로드 확인 클릭 완료"
             );
 
 
             // =====================================================
-            // 11. 원본 Excel 다운로드 완료 대기
+            // 11. 파일 다운로드 완료
             // =====================================================
 
             File downloadedFile =
                     waitForExcelDownload(
-                            new File(downloadDir),
+                            new File(
+                                    downloadDir
+                            ),
                             downloadStart,
                             60
                     );
@@ -359,14 +398,16 @@ public class HometaxService {
             if (downloadedFile == null) {
 
                 throw new RuntimeException(
-                        "다운로드 파일을 찾지 못했습니다."
+                        "엑셀 다운로드 파일을 "
+                        + "찾지 못했습니다."
                 );
             }
 
 
             System.out.println(
-                    "[WORK-15] 원본 파일 다운로드 완료"
+                    "[WORK-15] 원본 다운로드 완료"
             );
+
 
             System.out.println(
                     "원본 파일명 = "
@@ -375,9 +416,7 @@ public class HometaxService {
 
 
             // =====================================================
-            // 12. 파일명 변경
-            //
-            // 상호명_yyyyMMdd.xlsx
+            // 12. 상호명_기존파일명
             // =====================================================
 
             File renamedFile =
@@ -393,25 +432,22 @@ public class HometaxService {
             );
 
             System.out.println(
-                    "[WORK-16] 최종 작업 성공"
+                    "[WORK-16] 전체 작업 성공"
             );
 
             System.out.println(
                     "======================================"
             );
 
-            System.out.println(
-                    "상호 = "
-                    + businessName
-            );
 
             System.out.println(
-                    "파일명 = "
+                    "최종 파일명 = "
                     + renamedFile.getName()
             );
 
+
             System.out.println(
-                    "파일 위치 = "
+                    "최종 파일경로 = "
                     + renamedFile.getAbsolutePath()
             );
 
@@ -433,54 +469,130 @@ public class HometaxService {
 
 
     // =============================================================
-    // 상호명 가져오기
+    // 상호명
+    //
+    // 실제 확인한 ID:
+    // mf_txppWframe_txprNm
     // =============================================================
 
     private String findBusinessName() {
 
-        WebElement businessNameElement =
+        WebElement element =
                 wait.until(
-                    ExpectedConditions.visibilityOfElementLocated(
-                        By.id("mf_txppWframe_txprNm")
-                    )
+                    ExpectedConditions
+                        .visibilityOfElementLocated(
+                            By.id(
+                                "mf_txppWframe_txprNm"
+                            )
+                        )
                 );
 
+
         String businessName =
-                businessNameElement.getText();
+                element.getText();
+
 
         if (businessName == null
-                || businessName.trim().isEmpty()) {
+                || businessName
+                    .trim()
+                    .isEmpty()) {
 
             businessName =
-                    businessNameElement.getAttribute("value");
+                    element.getAttribute(
+                            "value"
+                    );
         }
 
+
         if (businessName == null
-                || businessName.trim().isEmpty()) {
+                || businessName
+                    .trim()
+                    .isEmpty()) {
 
             throw new RuntimeException(
                     "상호명을 가져오지 못했습니다."
             );
         }
 
-        businessName =
+
+        return cleanBusinessName(
+                businessName
+        );
+    }
+
+
+    // =============================================================
+    // 파일명 변경
+    //
+    // 기존:
+    // 매출내역.xlsx
+    //
+    // 변경: 상호명 + 기존파일이름
+    // 가나다상사_매출내역.xlsx
+    // =============================================================
+
+    private File renameDownloadedFile(
+            File originalFile,
+            String businessName)
+            throws Exception {
+
+
+        String safeBusinessName =
                 cleanBusinessName(
                         businessName
                 );
 
+
+        String originalFileName =
+                originalFile.getName();
+
+
+        String newFileName =
+                safeBusinessName
+                + "_"
+                + originalFileName;
+
+
+        File targetFile =
+                new File(
+                        originalFile
+                                .getParentFile(),
+                        newFileName
+                );
+
+
+        Path movedPath =
+                Files.move(
+                        originalFile.toPath(),
+                        targetFile.toPath(),
+                        StandardCopyOption
+                                .REPLACE_EXISTING
+                );
+
+
         System.out.println(
-                "[WORK-2] 상호명 = "
-                + businessName
+                "[RENAME] 파일명 변경 완료"
         );
 
-        return businessName;
+
+        System.out.println(
+                "기존 = "
+                + originalFileName
+        );
+
+
+        System.out.println(
+                "변경 = "
+                + movedPath.getFileName()
+        );
+
+
+        return movedPath.toFile();
     }
 
 
-    
-
     // =============================================================
-    // 파일명에 사용할 수 있도록 정리
+    // Windows 파일명 불가 문자 제거
     // =============================================================
 
     private String cleanBusinessName(
@@ -495,132 +607,8 @@ public class HometaxService {
     }
 
 
-	 // =============================================================
-	 // 다운로드 파일명 변경
-	 //
-	 // 예:
-	 // 기존 파일명 : 부가가치세자료.xlsx
-	 // 상호명      : 가나다상사
-	 //
-	 // 최종 파일명 : 가나다상사_부가가치세자료.xlsx
-	 // =============================================================
-
-    private File renameDownloadedFile(
-	         File originalFile,
-	         String businessName)
-	         throws Exception {
-
-
-	     // =========================================================
-	     // 상호명 정리
-	     // Windows 파일명에 사용할 수 없는 문자 제거
-	     // =========================================================
-	
-	     String safeBusinessName =
-	             cleanBusinessName(
-	                     businessName
-	             );
-	
-	
-	     // =========================================================
-	     // 홈택스에서 받은 기존 파일명
-	     // =========================================================
-	
-	     String originalFileName =
-	             originalFile.getName();
-	
-	
-	     // =========================================================
-	     // 최종 파일명
-	     //
-	     // 상호명_기존파일명
-	     // =========================================================
-	
-	     String newFileName =
-	             safeBusinessName
-	             + "_"
-	             + originalFileName;
-	
-	
-	     // =========================================================
-	     // 최종 파일 경로
-	     // =========================================================
-	
-	     File targetFile =
-	             new File(
-	                     originalFile.getParentFile(),
-	                     newFileName
-	             );
-	
-	
-	     // =========================================================
-	     // 파일 이름 변경
-	     //
-	     // 동일한 파일명이 이미 존재하면 덮어쓰기
-	     // =========================================================
-	
-	     Path movedPath =
-	             Files.move(
-	                     originalFile.toPath(),
-	                     targetFile.toPath(),
-	                     StandardCopyOption.REPLACE_EXISTING
-	             );
-	
-	
-	     System.out.println(
-	             "[WORK-16] 파일명 변경 완료"
-	     );
-	
-	     System.out.println(
-	             "상호명 = "
-	             + businessName
-	     );
-	
-	     System.out.println(
-	             "기존 파일명 = "
-	             + originalFileName
-	     );
-	
-	     System.out.println(
-	             "변경 파일명 = "
-	             + movedPath.getFileName()
-	     );
-	
-	
-	     return movedPath.toFile();
-	 }
-
     // =============================================================
-    // 유효성 검증
-    // =============================================================
-
-    private void validatePeriod(
-            int year,
-            int quarter) {
-
-        if (year < 2000
-                || year > 2100) {
-
-            throw new IllegalArgumentException(
-                    "잘못된 연도입니다: "
-                    + year
-            );
-        }
-
-
-        if (quarter < 1
-                || quarter > 4) {
-
-            throw new IllegalArgumentException(
-                    "분기는 1~4만 가능합니다: "
-                    + quarter
-            );
-        }
-    }
-
-
-    // =============================================================
-    // 분기별 선택
+    // 조회기간 = 분기별
     // =============================================================
 
     private void selectQuarterPeriod() {
@@ -633,11 +621,13 @@ public class HometaxService {
                 );
 
 
-        for (WebElement element : elements) {
+        for (WebElement element
+                : elements) {
 
             try {
 
                 if (!element.isDisplayed()) {
+
                     continue;
                 }
 
@@ -648,14 +638,16 @@ public class HometaxService {
                         );
 
 
-                if (clickable != null) {
+                scrollTo(
+                        clickable
+                );
 
-                    scrollTo(clickable);
 
-                    clickable.click();
+                clickable.click();
 
-                    return;
-                }
+
+                return;
+
 
             } catch (Exception ignored) {
             }
@@ -663,13 +655,17 @@ public class HometaxService {
 
 
         throw new RuntimeException(
-                "조회기간 '분기별'을 찾지 못했습니다."
+                "조회기간 '분기별'을 "
+                + "찾지 못했습니다."
         );
     }
 
 
     // =============================================================
-    // 콤보박스 선택
+    // 연도/분기 콤보박스
+    //
+    // 0 = 연도
+    // 1 = 분기
     // =============================================================
 
     private void selectComboByOrder(
@@ -678,35 +674,44 @@ public class HometaxService {
             String alternativeValue) {
 
 
-        // 일반 SELECT
+        // ---------------------------------------------------------
+        // 일반 HTML select
+        // ---------------------------------------------------------
+
         List<WebElement> selectElements =
                 driver.findElements(
-                        By.tagName("select")
+                    By.tagName(
+                        "select"
+                    )
                 );
 
 
         List<WebElement> visibleSelects =
                 selectElements
-                        .stream()
-                        .filter(element -> {
+                    .stream()
+                    .filter(element -> {
 
-                            try {
+                        try {
 
-                                return element.isDisplayed();
+                            return element.isDisplayed();
 
-                            } catch (Exception e) {
+                        } catch (Exception e) {
 
-                                return false;
-                            }
-                        })
-                        .toList();
+                            return false;
+                        }
+                    })
+                    .toList();
 
 
-        if (visibleSelects.size() > order) {
+        if (visibleSelects.size()
+                > order) {
+
 
             Select select =
                     new Select(
-                            visibleSelects.get(order)
+                        visibleSelects.get(
+                                order
+                        )
                     );
 
 
@@ -735,7 +740,10 @@ public class HometaxService {
         }
 
 
-        // WebSquare
+        // ---------------------------------------------------------
+        // WebSquare selectbox
+        // ---------------------------------------------------------
+
         List<WebElement> combos =
                 driver.findElements(
                     By.cssSelector(
@@ -747,32 +755,37 @@ public class HometaxService {
 
 
         List<WebElement> visibleCombos =
-                combos.stream()
-                        .filter(element -> {
+                combos
+                    .stream()
+                    .filter(element -> {
 
-                            try {
+                        try {
 
-                                return element.isDisplayed();
+                            return element.isDisplayed();
 
-                            } catch (Exception e) {
+                        } catch (Exception e) {
 
-                                return false;
-                            }
-                        })
-                        .toList();
+                            return false;
+                        }
+                    })
+                    .toList();
 
 
-        if (visibleCombos.size() <= order) {
+        if (visibleCombos.size()
+                <= order) {
 
             throw new RuntimeException(
                     (order + 1)
-                    + "번째 콤보박스를 찾지 못했습니다."
+                    + "번째 콤보박스를 "
+                    + "찾지 못했습니다."
             );
         }
 
 
         WebElement combo =
-                visibleCombos.get(order);
+                visibleCombos.get(
+                        order
+                );
 
 
         scrollTo(combo);
@@ -796,12 +809,9 @@ public class HometaxService {
                     );
 
 
-            if (clickable != null) {
+            clickable.click();
 
-                clickable.click();
-
-                return;
-            }
+            return;
         }
 
 
@@ -819,17 +829,15 @@ public class HometaxService {
                     );
 
 
-            if (clickable != null) {
+            clickable.click();
 
-                clickable.click();
-
-                return;
-            }
+            return;
         }
 
 
         throw new RuntimeException(
-                visibleText
+                "콤보박스에서 "
+                + visibleText
                 + " 값을 찾지 못했습니다."
         );
     }
@@ -852,65 +860,14 @@ public class HometaxService {
                 );
 
 
-        for (WebElement element : elements) {
+        for (WebElement element
+                : elements) {
 
             try {
 
                 if (element.isDisplayed()) {
 
                     return element;
-                }
-
-            } catch (Exception ignored) {
-            }
-        }
-
-
-        return null;
-    }
-
-
-    // =============================================================
-    // 버튼 찾기
-    // =============================================================
-
-    private WebElement findVisibleButton(
-            String text) {
-
-        List<WebElement> elements =
-                driver.findElements(
-                    By.xpath(
-                        "//*["
-                        + "self::a "
-                        + "or self::button "
-                        + "or self::input "
-                        + "or self::span"
-                        + "]"
-                        + "["
-                        + "normalize-space(.)='"
-                        + text
-                        + "' "
-                        + "or @value='"
-                        + text
-                        + "' "
-                        + "or @title='"
-                        + text
-                        + "'"
-                        + "]"
-                    )
-                );
-
-
-        for (WebElement element : elements) {
-
-            try {
-
-                if (element.isDisplayed()
-                        && element.isEnabled()) {
-
-                    return findClickableParent(
-                            element
-                    );
                 }
 
             } catch (Exception ignored) {
@@ -948,11 +905,13 @@ public class HometaxService {
                     element;
 
 
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0;
+                 i < 5;
+                 i++) {
 
                 current =
                         current.findElement(
-                                By.xpath("..")
+                            By.xpath("..")
                         );
 
 
@@ -961,7 +920,9 @@ public class HometaxService {
 
 
                 String role =
-                        current.getAttribute("role");
+                        current.getAttribute(
+                                "role"
+                        );
 
 
                 if ("a".equalsIgnoreCase(parentTag)
@@ -988,12 +949,12 @@ public class HometaxService {
 
 
     // =============================================================
-    // 조회 결과 대기
+    // 조회 완료 대기
     // =============================================================
 
     private void waitForSearchResult() {
 
-        sleep(1500);
+        sleep(1000);
 
 
         try {
@@ -1010,7 +971,8 @@ public class HometaxService {
                         );
 
 
-                for (WebElement element : loading) {
+                for (WebElement element
+                        : loading) {
 
                     try {
 
@@ -1031,12 +993,12 @@ public class HometaxService {
         }
 
 
-        sleep(1500);
+        sleep(1000);
     }
 
 
     // =============================================================
-    // Excel 다운로드 완료 확인
+    // 다운로드 완료 확인
     // =============================================================
 
     private File waitForExcelDownload(
@@ -1047,7 +1009,8 @@ public class HometaxService {
 
         long timeout =
                 System.currentTimeMillis()
-                + timeoutSeconds * 1000L;
+                + timeoutSeconds
+                * 1000L;
 
 
         while (System.currentTimeMillis()
@@ -1063,13 +1026,14 @@ public class HometaxService {
 
                 boolean downloading =
                         Arrays.stream(files)
-                                .anyMatch(file ->
-                                    file.getName()
-                                            .toLowerCase()
-                                            .endsWith(
-                                                ".crdownload"
-                                            )
-                                );
+                            .anyMatch(file ->
+
+                                file.getName()
+                                    .toLowerCase()
+                                    .endsWith(
+                                        ".crdownload"
+                                    )
+                            );
 
 
                 if (!downloading) {
@@ -1078,32 +1042,44 @@ public class HometaxService {
                     File result =
                             Arrays.stream(files)
 
-                                    .filter(File::isFile)
+                                .filter(
+                                    File::isFile
+                                )
 
-                                    .filter(file ->
-                                        file.lastModified()
-                                                >= startTime
-                                    )
+                                .filter(file ->
 
-                                    .filter(file -> {
+                                    file.lastModified()
+                                        >= startTime
+                                )
 
-                                        String name =
-                                                file.getName()
-                                                        .toLowerCase();
+                                .filter(file -> {
+
+                                    String name =
+                                            file.getName()
+                                                .toLowerCase();
 
 
-                                        return name.endsWith(".xlsx")
-                                                || name.endsWith(".xls")
-                                                || name.endsWith(".csv");
-                                    })
+                                    return name.endsWith(
+                                                ".xlsx"
+                                            )
+                                            ||
+                                            name.endsWith(
+                                                ".xls"
+                                            )
+                                            ||
+                                            name.endsWith(
+                                                ".csv"
+                                            );
+                                })
 
-                                    .max(
-                                        Comparator.comparingLong(
+                                .max(
+                                    Comparator
+                                        .comparingLong(
                                             File::lastModified
                                         )
-                                    )
+                                )
 
-                                    .orElse(null);
+                                .orElse(null);
 
 
                     if (result != null) {
@@ -1123,22 +1099,53 @@ public class HometaxService {
 
 
     // =============================================================
+    // 기간 검증
+    // =============================================================
+
+    private void validatePeriod(
+            int year,
+            int quarter) {
+
+
+        if (year < 2000
+                || year > 2100) {
+
+            throw new IllegalArgumentException(
+                    "잘못된 연도입니다: "
+                    + year
+            );
+        }
+
+
+        if (quarter < 1
+                || quarter > 4) {
+
+            throw new IllegalArgumentException(
+                    "분기는 1~4만 가능합니다: "
+                    + quarter
+            );
+        }
+    }
+
+
+    // =============================================================
     // 스크롤
     // =============================================================
 
     private void scrollTo(
             WebElement element) {
 
+
         ((JavascriptExecutor) driver)
-                .executeScript(
-                    "arguments[0].scrollIntoView("
-                    + "{block:'center'}"
-                    + ");",
-                    element
-                );
+            .executeScript(
+                "arguments[0].scrollIntoView("
+                + "{block:'center'}"
+                + ");",
+                element
+            );
 
 
-        sleep(300);
+        sleep(200);
     }
 
 
@@ -1151,7 +1158,9 @@ public class HometaxService {
 
         try {
 
-            Thread.sleep(millis);
+            Thread.sleep(
+                    millis
+            );
 
         } catch (InterruptedException e) {
 

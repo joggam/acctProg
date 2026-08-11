@@ -1,4 +1,4 @@
-package com.hometax;
+package com.hometax.com;
 
 import java.io.File;
 import java.time.Duration;
@@ -26,26 +26,48 @@ public class HometaxLogin {
             String jumin7th,
             String downloadDir) {
 
-        WebDriver driver = null;
+        ChromeDriver driver = null;
 
         try {
 
-            // 다운로드 폴더
+            // =====================================================
+            // 다운로드 폴더 생성
+            // =====================================================
+
             File downloadFolder =
                     new File(downloadDir);
 
             if (!downloadFolder.exists()) {
-                downloadFolder.mkdirs();
+
+                boolean created =
+                        downloadFolder.mkdirs();
+
+                if (!created
+                        && !downloadFolder.exists()) {
+
+                    throw new RuntimeException(
+                            "다운로드 폴더 생성 실패: "
+                            + downloadDir
+                    );
+                }
             }
 
 
+            String absoluteDownloadDir =
+                    downloadFolder
+                            .getAbsolutePath();
+
+
+            // =====================================================
             // Chrome 다운로드 설정
+            // =====================================================
+
             Map<String, Object> prefs =
                     new HashMap<>();
 
             prefs.put(
                     "download.default_directory",
-                    downloadFolder.getAbsolutePath()
+                    absoluteDownloadDir
             );
 
             prefs.put(
@@ -59,6 +81,10 @@ public class HometaxLogin {
             );
 
 
+            // =====================================================
+            // ChromeOptions
+            // =====================================================
+
             ChromeOptions options =
                     new ChromeOptions();
 
@@ -68,19 +94,68 @@ public class HometaxLogin {
             );
 
 
+            // =====================================================
+            // ★ Headless
+            //
+            // Chrome 창을 화면에 표시하지 않음
+            // =====================================================
+
+            options.addArguments(
+                    "--headless=new"
+            );
+
+            options.addArguments(
+                    "--window-size=1920,1080"
+            );
+
+            options.addArguments(
+                    "--disable-gpu"
+            );
+
+            options.addArguments(
+                    "--disable-dev-shm-usage"
+            );
+
+            options.addArguments(
+                    "--disable-notifications"
+            );
+
+
+            // =====================================================
             // Chrome 실행
+            // =====================================================
+
             driver =
                     new ChromeDriver(options);
+
+
+            /*
+             * Headless Chrome에서도 다운로드 허용
+             */
+            Map<String, Object> downloadParams =
+                    new HashMap<>();
+
+            downloadParams.put(
+                    "behavior",
+                    "allow"
+            );
+
+            downloadParams.put(
+                    "downloadPath",
+                    absoluteDownloadDir
+            );
+
+            driver.executeCdpCommand(
+                    "Page.setDownloadBehavior",
+                    downloadParams
+            );
+
 
             WebDriverWait wait =
                     new WebDriverWait(
                             driver,
                             Duration.ofSeconds(30)
                     );
-
-            driver.manage()
-                    .window()
-                    .maximize();
 
 
             // =====================================================
@@ -100,27 +175,29 @@ public class HometaxLogin {
 
             WebElement mainLogin =
                     wait.until(
-                        ExpectedConditions.elementToBeClickable(
-                            By.id(
-                                "mf_wfHeader_group1503"
+                        ExpectedConditions
+                            .elementToBeClickable(
+                                By.id(
+                                    "mf_wfHeader_group1503"
+                                )
                             )
-                        )
                     );
 
             mainLogin.click();
 
 
             // =====================================================
-            // 3. 아이디 로그인
+            // 3. 아이디 로그인 탭
             // =====================================================
 
             WebElement idLoginTab =
                     wait.until(
-                        ExpectedConditions.elementToBeClickable(
-                            By.id(
-                                "mf_txppWframe_anchor15"
+                        ExpectedConditions
+                            .elementToBeClickable(
+                                By.id(
+                                    "mf_txppWframe_anchor15"
+                                )
                             )
-                        )
                     );
 
             idLoginTab.click();
@@ -132,15 +209,19 @@ public class HometaxLogin {
 
             WebElement idInput =
                     wait.until(
-                        ExpectedConditions.visibilityOfElementLocated(
-                            By.id(
-                                "mf_txppWframe_iptUserId"
+                        ExpectedConditions
+                            .visibilityOfElementLocated(
+                                By.id(
+                                    "mf_txppWframe_iptUserId"
+                                )
                             )
-                        )
                     );
 
             idInput.clear();
-            idInput.sendKeys(hometaxId);
+
+            idInput.sendKeys(
+                    hometaxId
+            );
 
 
             // =====================================================
@@ -149,14 +230,16 @@ public class HometaxLogin {
 
             WebElement passwordInput =
                     wait.until(
-                        ExpectedConditions.visibilityOfElementLocated(
-                            By.id(
-                                "mf_txppWframe_iptUserPw"
+                        ExpectedConditions
+                            .visibilityOfElementLocated(
+                                By.id(
+                                    "mf_txppWframe_iptUserPw"
+                                )
                             )
-                        )
                     );
 
             passwordInput.clear();
+
             passwordInput.sendKeys(
                     hometaxPassword
             );
@@ -168,14 +251,16 @@ public class HometaxLogin {
 
             WebElement loginButton =
                     wait.until(
-                        ExpectedConditions.elementToBeClickable(
-                            By.id(
-                                "mf_txppWframe_anchor25"
+                        ExpectedConditions
+                            .elementToBeClickable(
+                                By.id(
+                                    "mf_txppWframe_anchor25"
+                                )
                             )
-                        )
                     );
 
             loginButton.click();
+
 
             System.out.println(
                     "[LOGIN-2] ID/PW 인증 완료"
@@ -188,14 +273,16 @@ public class HometaxLogin {
 
             WebElement jumin1 =
                     wait.until(
-                        ExpectedConditions.visibilityOfElementLocated(
-                            By.id(
-                                "mf_txppWframe_UTXPPABC12_wframe_iptUserJuminNo1"
+                        ExpectedConditions
+                            .visibilityOfElementLocated(
+                                By.id(
+                                    "mf_txppWframe_UTXPPABC12_wframe_iptUserJuminNo1"
+                                )
                             )
-                        )
                     );
 
             jumin1.clear();
+
             jumin1.sendKeys(
                     juminFirst6
             );
@@ -207,33 +294,37 @@ public class HometaxLogin {
 
             WebElement jumin2 =
                     wait.until(
-                        ExpectedConditions.visibilityOfElementLocated(
-                            By.id(
-                                "mf_txppWframe_UTXPPABC12_wframe_iptUserJuminNo2"
+                        ExpectedConditions
+                            .visibilityOfElementLocated(
+                                By.id(
+                                    "mf_txppWframe_UTXPPABC12_wframe_iptUserJuminNo2"
+                                )
                             )
-                        )
                     );
 
             jumin2.clear();
+
             jumin2.sendKeys(
                     jumin7th
             );
 
 
             // =====================================================
-            // 9. 2차 인증
+            // 9. 2차 인증 확인
             // =====================================================
 
             WebElement secondAuth =
                     wait.until(
-                        ExpectedConditions.elementToBeClickable(
-                            By.id(
-                                "mf_txppWframe_UTXPPABC12_wframe_trigger46"
+                        ExpectedConditions
+                            .elementToBeClickable(
+                                By.id(
+                                    "mf_txppWframe_UTXPPABC12_wframe_trigger46"
+                                )
                             )
-                        )
                     );
 
             secondAuth.click();
+
 
             System.out.println(
                     "[LOGIN-3] 2차 인증 요청 완료"
@@ -245,21 +336,24 @@ public class HometaxLogin {
             // =====================================================
 
             wait.until(d ->
-                    d.findElements(
-                        By.xpath(
-                            "//*[normalize-space(text())='로그아웃']"
-                        )
+
+                d.findElements(
+                    By.xpath(
+                        "//*[normalize-space(text())='로그아웃']"
                     )
-                    .stream()
-                    .anyMatch(element -> {
+                )
+                .stream()
+                .anyMatch(element -> {
 
-                        try {
-                            return element.isDisplayed();
+                    try {
 
-                        } catch (Exception e) {
-                            return false;
-                        }
-                    })
+                        return element.isDisplayed();
+
+                    } catch (Exception e) {
+
+                        return false;
+                    }
+                })
             );
 
 
@@ -268,7 +362,7 @@ public class HometaxLogin {
             );
 
 
-            // 로그인된 브라우저 반환
+            // 로그인된 Chrome 반환
             return driver;
 
 
@@ -277,7 +371,9 @@ public class HometaxLogin {
             if (driver != null) {
 
                 try {
+
                     driver.quit();
+
                 } catch (Exception ignored) {
                 }
             }
