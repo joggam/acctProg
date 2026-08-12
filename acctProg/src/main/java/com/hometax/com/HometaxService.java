@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
@@ -38,9 +39,7 @@ public class HometaxService {
             String downloadDir) {
 
         this.driver = driver;
-
-        this.downloadDir =
-                downloadDir;
+        this.downloadDir = downloadDir;
 
         this.wait =
                 new WebDriverWait(
@@ -67,11 +66,9 @@ public class HometaxService {
                 quarter
         );
 
-
         try {
 
             System.out.println();
-
             System.out.println(
                     "======================================"
             );
@@ -94,33 +91,39 @@ public class HometaxService {
 
             driver.get(TARGET_URL);
 
-
             System.out.println(
                     "[WORK-1] 대상 메뉴 이동 완료"
             );
 
 
             wait.until(d ->
-
-                d.findElements(
-                    By.cssSelector(
-                        "body *"
-                    )
-                ).size() > 30
+                    d.findElements(
+                            By.cssSelector(
+                                    "body *"
+                            )
+                    ).size() > 30
             );
 
 
             // =====================================================
-            // 2. 상호명
+            // 2. 상호명 / 사업자등록번호
             // =====================================================
 
             String businessName =
                     findBusinessName();
 
+            String businessNumber =
+                    findBusinessNumber();
+
 
             System.out.println(
                     "[WORK-2] 상호명 = "
                     + businessName
+            );
+
+            System.out.println(
+                    "[WORK-2-1] 사업자등록번호 = "
+                    + businessNumber
             );
 
 
@@ -130,11 +133,9 @@ public class HometaxService {
 
             selectQuarterPeriod();
 
-
             System.out.println(
                     "[WORK-3] 조회기간 = 분기별"
             );
-
 
             sleep(300);
 
@@ -149,13 +150,11 @@ public class HometaxService {
                     String.valueOf(year)
             );
 
-
             System.out.println(
                     "[WORK-4] 연도 = "
                     + year
                     + "년"
             );
-
 
             sleep(300);
 
@@ -170,31 +169,27 @@ public class HometaxService {
                     String.valueOf(quarter)
             );
 
-
             System.out.println(
                     "[WORK-5] 분기 = "
                     + quarter
                     + "분기"
             );
 
-
             sleep(300);
 
 
             // =====================================================
             // 6. 조회 버튼
-            //
-            // 실제 확인된 ID 사용
             // =====================================================
 
             WebElement searchButton =
                     wait.until(
-                        ExpectedConditions
-                            .elementToBeClickable(
-                                By.id(
-                                    "mf_txppWframe_btnSearch"
-                                )
-                            )
+                            ExpectedConditions
+                                    .elementToBeClickable(
+                                            By.id(
+                                                    "mf_txppWframe_btnSearch"
+                                            )
+                                    )
                     );
 
 
@@ -206,7 +201,6 @@ public class HometaxService {
             scrollTo(
                     searchButton
             );
-
 
             searchButton.click();
 
@@ -222,7 +216,6 @@ public class HometaxService {
 
             waitForSearchResult();
 
-
             System.out.println(
                     "[WORK-8] 조회 완료"
             );
@@ -230,18 +223,16 @@ public class HometaxService {
 
             // =====================================================
             // 8. 내려받기
-            //
-            // 실제 확인된 ID 사용
             // =====================================================
 
             WebElement downloadButton =
                     wait.until(
-                        ExpectedConditions
-                            .elementToBeClickable(
-                                By.id(
-                                    "mf_txppWframe_trigger12"
-                                )
-                            )
+                            ExpectedConditions
+                                    .elementToBeClickable(
+                                            By.id(
+                                                    "mf_txppWframe_trigger12"
+                                            )
+                                    )
                     );
 
 
@@ -253,7 +244,6 @@ public class HometaxService {
             scrollTo(
                     downloadButton
             );
-
 
             downloadButton.click();
 
@@ -272,20 +262,20 @@ public class HometaxService {
 
                         List<WebElement> candidates =
                                 d.findElements(
-                                    By.xpath(
-                                        "//*["
-                                        + "self::a "
-                                        + "or self::button "
-                                        + "or self::input "
-                                        + "or self::span "
-                                        + "or self::div"
-                                        + "]"
-                                        + "["
-                                        + "normalize-space(.)='엑셀' "
-                                        + "or @value='엑셀' "
-                                        + "or @title='엑셀'"
-                                        + "]"
-                                    )
+                                        By.xpath(
+                                                "//*["
+                                                + "self::a "
+                                                + "or self::button "
+                                                + "or self::input "
+                                                + "or self::span "
+                                                + "or self::div"
+                                                + "]"
+                                                + "["
+                                                + "normalize-space(.)='엑셀' "
+                                                + "or @value='엑셀' "
+                                                + "or @title='엑셀'"
+                                                + "]"
+                                        )
                                 );
 
 
@@ -340,7 +330,6 @@ public class HometaxService {
                     excelButton
             );
 
-
             excelButton.click();
 
 
@@ -357,8 +346,8 @@ public class HometaxService {
 
             Alert alert =
                     wait.until(
-                        ExpectedConditions
-                            .alertIsPresent()
+                            ExpectedConditions
+                                    .alertIsPresent()
                     );
 
 
@@ -398,8 +387,7 @@ public class HometaxService {
             if (downloadedFile == null) {
 
                 throw new RuntimeException(
-                        "엑셀 다운로드 파일을 "
-                        + "찾지 못했습니다."
+                        "엑셀 다운로드 파일을 찾지 못했습니다."
                 );
             }
 
@@ -416,13 +404,19 @@ public class HometaxService {
 
 
             // =====================================================
-            // 12. 상호명_기존파일명
+            // 12. 파일명 변경
+            //
+            // 상호명_사업자등록번호_기존파일명
+            //
+            // 예:
+            // 법인설립연구소_679-19-02150_20251231.xls
             // =====================================================
 
             File renamedFile =
                     renameDownloadedFile(
                             downloadedFile,
-                            businessName
+                            businessName,
+                            businessNumber
                     );
 
 
@@ -469,9 +463,9 @@ public class HometaxService {
 
 
     // =============================================================
-    // 상호명
+    // 상호명 가져오기
     //
-    // 실제 확인한 ID:
+    // ID:
     // mf_txppWframe_txprNm
     // =============================================================
 
@@ -479,12 +473,12 @@ public class HometaxService {
 
         WebElement element =
                 wait.until(
-                    ExpectedConditions
-                        .visibilityOfElementLocated(
-                            By.id(
-                                "mf_txppWframe_txprNm"
-                            )
-                        )
+                        ExpectedConditions
+                                .visibilityOfElementLocated(
+                                        By.id(
+                                                "mf_txppWframe_txprNm"
+                                        )
+                                )
                 );
 
 
@@ -492,10 +486,11 @@ public class HometaxService {
                 element.getText();
 
 
+        // getText()가 비어 있을 경우 value 속성 확인
         if (businessName == null
                 || businessName
-                    .trim()
-                    .isEmpty()) {
+                        .trim()
+                        .isEmpty()) {
 
             businessName =
                     element.getAttribute(
@@ -506,8 +501,8 @@ public class HometaxService {
 
         if (businessName == null
                 || businessName
-                    .trim()
-                    .isEmpty()) {
+                        .trim()
+                        .isEmpty()) {
 
             throw new RuntimeException(
                     "상호명을 가져오지 못했습니다."
@@ -515,31 +510,92 @@ public class HometaxService {
         }
 
 
-        return cleanBusinessName(
+        return cleanFileNameValue(
                 businessName
         );
     }
 
 
     // =============================================================
-    // 파일명 변경
+    // 사업자등록번호 가져오기
+    //
+    // ID:
+    // mf_txppWframe_bmanTxprNo
+    // =============================================================
+
+    private String findBusinessNumber() {
+
+        WebElement element =
+                wait.until(
+                        ExpectedConditions
+                                .visibilityOfElementLocated(
+                                        By.id(
+                                                "mf_txppWframe_bmanTxprNo"
+                                        )
+                                )
+                );
+
+
+        String businessNumber =
+                element.getText();
+
+
+        // getText()가 비어 있을 경우 value 속성 확인
+        if (businessNumber == null
+                || businessNumber
+                        .trim()
+                        .isEmpty()) {
+
+            businessNumber =
+                    element.getAttribute(
+                            "value"
+                    );
+        }
+
+
+        if (businessNumber == null
+                || businessNumber
+                        .trim()
+                        .isEmpty()) {
+
+            throw new RuntimeException(
+                    "사업자등록번호를 가져오지 못했습니다."
+            );
+        }
+
+
+        return cleanFileNameValue(
+                businessNumber
+        );
+    }
+
+
+    // =============================================================
+    // 다운로드 파일명 변경
     //
     // 기존:
-    // 매출내역.xlsx
+    // 20251231.xls
     //
-    // 변경: 상호명 + 기존파일이름
-    // 가나다상사_매출내역.xlsx
+    // 변경:
+    // 법인설립연구소_679-19-02150_20251231.xls
     // =============================================================
 
     private File renameDownloadedFile(
             File originalFile,
-            String businessName)
+            String businessName,
+            String businessNumber)
             throws Exception {
 
 
         String safeBusinessName =
-                cleanBusinessName(
+                cleanFileNameValue(
                         businessName
+                );
+
+
+        String safeBusinessNumber =
+                cleanFileNameValue(
+                        businessNumber
                 );
 
 
@@ -549,6 +605,8 @@ public class HometaxService {
 
         String newFileName =
                 safeBusinessName
+                + "_"
+                + safeBusinessNumber
                 + "_"
                 + originalFileName;
 
@@ -576,6 +634,18 @@ public class HometaxService {
 
 
         System.out.println(
+                "상호명 = "
+                + safeBusinessName
+        );
+
+
+        System.out.println(
+                "사업자등록번호 = "
+                + safeBusinessNumber
+        );
+
+
+        System.out.println(
                 "기존 = "
                 + originalFileName
         );
@@ -592,17 +662,27 @@ public class HometaxService {
 
 
     // =============================================================
-    // Windows 파일명 불가 문자 제거
+    // Windows 파일명에 사용할 수 없는 문자 변경
+    //
+    // \ / : * ? " < > |
+    //
+    // 위 문자는 "_"로 변경
     // =============================================================
 
-    private String cleanBusinessName(
-            String businessName) {
+    private String cleanFileNameValue(
+            String value) {
 
-        return businessName
+        if (value == null) {
+
+            return "";
+        }
+
+
+        return value
                 .trim()
                 .replaceAll(
-                    "[\\\\/:*?\"<>|]",
-                    "_"
+                        "[\\\\/:*?\"<>|]",
+                        "_"
                 );
     }
 
@@ -615,9 +695,9 @@ public class HometaxService {
 
         List<WebElement> elements =
                 driver.findElements(
-                    By.xpath(
-                        "//*[normalize-space(text())='분기별']"
-                    )
+                        By.xpath(
+                                "//*[normalize-space(text())='분기별']"
+                        )
                 );
 
 
@@ -655,8 +735,7 @@ public class HometaxService {
 
 
         throw new RuntimeException(
-                "조회기간 '분기별'을 "
-                + "찾지 못했습니다."
+                "조회기간 '분기별'을 찾지 못했습니다."
         );
     }
 
@@ -664,6 +743,7 @@ public class HometaxService {
     // =============================================================
     // 연도/분기 콤보박스
     //
+    // order
     // 0 = 연도
     // 1 = 분기
     // =============================================================
@@ -680,27 +760,42 @@ public class HometaxService {
 
         List<WebElement> selectElements =
                 driver.findElements(
-                    By.tagName(
-                        "select"
-                    )
+                        By.tagName(
+                                "select"
+                        )
                 );
 
 
+        /*
+         * Java 16 이상:
+         *
+         * .toList()
+         *
+         * 를 사용할 수 있지만,
+         * 현재 프로젝트 호환성을 위해
+         *
+         * .collect(Collectors.toList())
+         *
+         * 사용
+         */
+
         List<WebElement> visibleSelects =
                 selectElements
-                    .stream()
-                    .filter(element -> {
+                        .stream()
+                        .filter(element -> {
 
-                        try {
+                            try {
 
-                            return element.isDisplayed();
+                                return element.isDisplayed();
 
-                        } catch (Exception e) {
+                            } catch (Exception e) {
 
-                            return false;
-                        }
-                    })
-                    .toList();
+                                return false;
+                            }
+                        })
+                        .collect(
+                                Collectors.toList()
+                        );
 
 
         if (visibleSelects.size()
@@ -709,9 +804,9 @@ public class HometaxService {
 
             Select select =
                     new Select(
-                        visibleSelects.get(
-                                order
-                        )
+                            visibleSelects.get(
+                                    order
+                            )
                     );
 
 
@@ -746,29 +841,31 @@ public class HometaxService {
 
         List<WebElement> combos =
                 driver.findElements(
-                    By.cssSelector(
-                        ".w2selectbox, "
-                        + "[class*='selectbox'], "
-                        + "[role='combobox']"
-                    )
+                        By.cssSelector(
+                                ".w2selectbox, "
+                                + "[class*='selectbox'], "
+                                + "[role='combobox']"
+                        )
                 );
 
 
         List<WebElement> visibleCombos =
                 combos
-                    .stream()
-                    .filter(element -> {
+                        .stream()
+                        .filter(element -> {
 
-                        try {
+                            try {
 
-                            return element.isDisplayed();
+                                return element.isDisplayed();
 
-                        } catch (Exception e) {
+                            } catch (Exception e) {
 
-                            return false;
-                        }
-                    })
-                    .toList();
+                                return false;
+                            }
+                        })
+                        .collect(
+                                Collectors.toList()
+                        );
 
 
         if (visibleCombos.size()
@@ -776,8 +873,7 @@ public class HometaxService {
 
             throw new RuntimeException(
                     (order + 1)
-                    + "번째 콤보박스를 "
-                    + "찾지 못했습니다."
+                    + "번째 콤보박스를 찾지 못했습니다."
             );
         }
 
@@ -788,12 +884,18 @@ public class HometaxService {
                 );
 
 
-        scrollTo(combo);
+        scrollTo(
+                combo
+        );
 
         combo.click();
 
         sleep(300);
 
+
+        // ---------------------------------------------------------
+        // 화면 표시값으로 찾기
+        // ---------------------------------------------------------
 
         WebElement option =
                 findVisibleTextElement(
@@ -814,6 +916,10 @@ public class HometaxService {
             return;
         }
 
+
+        // ---------------------------------------------------------
+        // 대체값으로 찾기
+        // ---------------------------------------------------------
 
         option =
                 findVisibleTextElement(
@@ -844,7 +950,7 @@ public class HometaxService {
 
 
     // =============================================================
-    // 텍스트 요소
+    // 화면에서 표시된 텍스트 요소 찾기
     // =============================================================
 
     private WebElement findVisibleTextElement(
@@ -852,11 +958,11 @@ public class HometaxService {
 
         List<WebElement> elements =
                 driver.findElements(
-                    By.xpath(
-                        "//*[normalize-space(text())='"
-                        + text
-                        + "']"
-                    )
+                        By.xpath(
+                                "//*[normalize-space(text())='"
+                                + text
+                                + "']"
+                        )
                 );
 
 
@@ -880,7 +986,7 @@ public class HometaxService {
 
 
     // =============================================================
-    // 클릭 가능한 부모
+    // 클릭 가능한 부모 요소 찾기
     // =============================================================
 
     private WebElement findClickableParent(
@@ -909,9 +1015,10 @@ public class HometaxService {
                  i < 5;
                  i++) {
 
+
                 current =
                         current.findElement(
-                            By.xpath("..")
+                                By.xpath("..")
                         );
 
 
@@ -963,11 +1070,11 @@ public class HometaxService {
 
                 List<WebElement> loading =
                         d.findElements(
-                            By.xpath(
-                                "//*[contains("
-                                + "normalize-space(.),"
-                                + "'조회중')]"
-                            )
+                                By.xpath(
+                                        "//*[contains("
+                                        + "normalize-space(.),"
+                                        + "'조회중')]"
+                                )
                         );
 
 
@@ -1024,16 +1131,16 @@ public class HometaxService {
             if (files != null) {
 
 
-                boolean downloading =
-                        Arrays.stream(files)
-                            .anyMatch(file ->
-
-                                file.getName()
-                                    .toLowerCase()
-                                    .endsWith(
-                                        ".crdownload"
-                                    )
-                            );
+                // Chrome 다운로드 중 파일이 있는지 확인
+            	boolean downloading =
+            	        Arrays.stream(files)
+            	            .anyMatch(file ->
+            	                file.getName()
+            	                    .toLowerCase()
+            	                    .endsWith(".crdownload")
+            	                &&
+            	                file.lastModified() >= startTime
+            	            );
 
 
                 if (!downloading) {
@@ -1042,44 +1149,43 @@ public class HometaxService {
                     File result =
                             Arrays.stream(files)
 
-                                .filter(
-                                    File::isFile
-                                )
+                                    .filter(
+                                            File::isFile
+                                    )
 
-                                .filter(file ->
+                                    .filter(file ->
+                                            file.lastModified()
+                                                    >= startTime
+                                    )
 
-                                    file.lastModified()
-                                        >= startTime
-                                )
+                                    .filter(file -> {
 
-                                .filter(file -> {
-
-                                    String name =
-                                            file.getName()
-                                                .toLowerCase();
+                                        String name =
+                                                file.getName()
+                                                        .toLowerCase();
 
 
-                                    return name.endsWith(
+                                        return name.endsWith(
                                                 ".xlsx"
-                                            )
-                                            ||
-                                            name.endsWith(
-                                                ".xls"
-                                            )
-                                            ||
-                                            name.endsWith(
-                                                ".csv"
-                                            );
-                                })
-
-                                .max(
-                                    Comparator
-                                        .comparingLong(
-                                            File::lastModified
                                         )
-                                )
+                                        ||
+                                        name.endsWith(
+                                                ".xls"
+                                        )
+                                        ||
+                                        name.endsWith(
+                                                ".csv"
+                                        );
+                                    })
 
-                                .orElse(null);
+                                    .max(
+                                            Comparator
+                                                    .comparingLong(
+                                                            File::lastModified
+                                                    )
+                                    )
+
+                                    .orElse(null);
 
 
                     if (result != null) {
@@ -1099,7 +1205,7 @@ public class HometaxService {
 
 
     // =============================================================
-    // 기간 검증
+    // 연도 / 분기 검증
     // =============================================================
 
     private void validatePeriod(
@@ -1129,7 +1235,7 @@ public class HometaxService {
 
 
     // =============================================================
-    // 스크롤
+    // 요소 위치로 스크롤
     // =============================================================
 
     private void scrollTo(
@@ -1137,12 +1243,12 @@ public class HometaxService {
 
 
         ((JavascriptExecutor) driver)
-            .executeScript(
-                "arguments[0].scrollIntoView("
-                + "{block:'center'}"
-                + ");",
-                element
-            );
+                .executeScript(
+                        "arguments[0].scrollIntoView("
+                        + "{block:'center'}"
+                        + ");",
+                        element
+                );
 
 
         sleep(200);
