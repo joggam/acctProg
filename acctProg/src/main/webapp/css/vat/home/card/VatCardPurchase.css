@@ -1,0 +1,257 @@
+.vat_card_wrap {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 20px;
+}
+
+.vat_card_wrap h1 {
+    margin: 0 0 22px 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.vat_card_wrap h2 {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+}
+
+.vat_notice_box {
+    margin-bottom: 24px;
+    padding: 18px 22px;
+    border: 1px solid #d8dee8;
+    background: #f7f9fc;
+    line-height: 1.8;
+}
+
+.vat_notice_box ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.vat_section {
+    margin-bottom: 20px;
+}
+
+.vat_form_table,
+.vat_grid {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.vat_form_table caption,
+.vat_grid caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+}
+
+.vat_form_table th,
+.vat_form_table td {
+    padding: 12px 14px;
+    border: 1px solid #d9dee7;
+}
+
+.vat_form_table th {
+    background: #f4f6f9;
+    text-align: center;
+    font-weight: 600;
+}
+
+.vat_search_box {
+    margin-bottom: 22px;
+    border: 1px solid #d7dde6;
+    background: #f8fafc;
+}
+
+.vat_search_row {
+    display: flex;
+    align-items: center;
+    min-height: 58px;
+    border-bottom: 1px solid #e4e8ee;
+}
+
+.vat_search_row:last-child {
+    border-bottom: 0;
+}
+
+.vat_search_title {
+    width: 160px;
+    padding: 0 20px;
+    box-sizing: border-box;
+    font-weight: 600;
+}
+
+.vat_search_content {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+}
+
+.vat_search_content label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.vat_search_content select,
+.vat_search_content input[type="date"],
+.vat_search_content input[type="month"] {
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid #bfc7d3;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.vat_period_area {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.vat_required {
+    color: #d60000;
+}
+
+.vat_search_button_area {
+    padding-right: 20px;
+}
+
+.vat_btn {
+    min-width: 86px;
+    height: 36px;
+    padding: 0 18px;
+    border: 1px solid #596579;
+    background: #fff;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.vat_btn_search {
+    background: #334155;
+    border-color: #334155;
+    color: #fff;
+}
+
+.vat_btn_download {
+    background: #fff;
+}
+
+.vat_result_top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.vat_total_amount {
+    font-size: 15px;
+}
+
+.vat_total_amount strong {
+    font-size: 17px;
+}
+
+.vat_total_amount span {
+    color: #667085;
+}
+
+.vat_grid_area {
+    width: 100%;
+    overflow-x: auto;
+    border-top: 2px solid #3f4b5b;
+}
+
+.vat_grid {
+    min-width: 1300px;
+}
+
+.vat_grid th,
+.vat_grid td {
+    border: 1px solid #d9dee7;
+    padding: 10px 8px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.vat_grid th {
+    background: #f1f4f8;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.vat_grid tbody tr:hover {
+    background: #fafbfd;
+}
+
+.vat_align_left {
+    text-align: left !important;
+}
+
+.vat_align_right {
+    text-align: right !important;
+}
+
+.vat_no_data {
+    height: 80px;
+    color: #667085;
+    text-align: center !important;
+}
+
+.vat_paging {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+    margin-top: 20px;
+    position: relative;
+}
+
+.vat_page_btn {
+    height: 30px;
+    padding: 0 11px;
+    border: 1px solid #ccd3dd;
+    background: #fff;
+    cursor: pointer;
+}
+
+.vat_page_current {
+    min-width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    background: #334155;
+    color: #fff;
+}
+
+.vat_page_count {
+    position: absolute;
+    right: 0;
+    color: #475467;
+}
+
+@media screen and (max-width: 900px) {
+
+    .vat_search_row {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        padding: 12px 0;
+    }
+
+    .vat_search_title {
+        width: 130px;
+        padding-top: 8px;
+    }
+
+    .vat_search_content {
+        flex-wrap: wrap;
+    }
+
+    .vat_search_button_area {
+        margin-left: auto;
+    }
+}

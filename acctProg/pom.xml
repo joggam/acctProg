@@ -19,8 +19,11 @@
 	<properties>
 		<spring.maven.artifact.version>5.3.37</spring.maven.artifact.version>
 		<org.egovframe.rte.version>4.3.0</org.egovframe.rte.version>
-		<java.version>1.8</java.version>
+		<java.version>11</java.version>
+		
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
+	
 
 	<repositories>
 		<repository>
@@ -51,6 +54,28 @@
 	</repositories>
 
     <dependencies>
+		<!--프로젝트용 -->
+		<!-- Selenium -->
+		<dependency>
+		    <groupId>org.seleniumhq.selenium</groupId>
+		    <artifactId>selenium-java</artifactId>
+		    <version>4.46.0</version>
+		</dependency>
+		
+		<!-- Apache POI : .xls 파일 처리 -->
+		<dependency>
+		    <groupId>org.apache.poi</groupId>
+		    <artifactId>poi</artifactId>
+		    <version>5.4.1</version>
+		
+		    <exclusions>
+		        <exclusion>
+		            <groupId>org.apache.logging.log4j</groupId>
+		            <artifactId>log4j-api</artifactId>
+		        </exclusion>
+		    </exclusions>
+		</dependency>
+        
         <!-- 실행환경 라이브러리 -->
         <!--
         mybatis를 사용하는 데 jdk1.5로 컴파일 할 경우 아래와 같이 변경해 주시기 바랍니다.

@@ -14,6 +14,7 @@ link:hover { color: #000000; text-decoration: none; }
 </head>
 <body>
 <div id="lnb">
+<c:set var="isVat" value="false"/>
 <c:set var="isMai" value="false"/>
 <c:set var="isUat" value="false"/>
 <c:set var="isSec" value="false"/>
@@ -25,9 +26,23 @@ link:hover { color: #000000; text-decoration: none; }
 <c:set var="isDam" value="false"/>
 <c:set var="isCom" value="false"/>
 <c:set var="isExt" value="false"/>
+ 
 <ul class="lnb_title">
+	<li><a href="<c:url value='/sym/mnu/mpm/EgovMainMenuHome.do' />" target="_top">HOME</a></li>
+		<c:forEach var="result" items="${list_headmenu}" varStatus="status">
+		   <li class="gap"> l </li>
+		   <li><a href="javascript:fn_main_headPageMove('<c:out value="${result.menuNo}"/>','<c:out value="${result.chkURL}"/>')" target="_content" class="link"><c:out value="${result.menuNm}"/></a></li>
+			<li><a href="${pageContext.request.contextPath}<c:out value="${result.listUrl}"/>" target="_content" class="link"> <spring:message code="${componentMsgKey}"/><!-- <c:out value="${result.name}"/> --></a></li>
+		
+		</c:forEach>
+        
 	<c:forEach var="result" items="${resultList}" varStatus="status">
-	
+		<c:if test="${isVat == 'false' && result.gid == '1'}">
+			<li>
+				<strong class="left_title_strong"><strong class="top_title_strong"><spring:message code="comCmm.vat.title"/></strong></strong><!-- 홈택스 -->
+			</li>
+			<c:set var="isVat" value="true"/>
+		</c:if>
 		<c:if test="${isMai == 'false' && result.gid == '0'}">
 			<li>
 				<strong class="left_title_strong"><strong class="top_title_strong"><spring:message code="comCmm.mai.title"/></strong></strong><!-- 포털(예제) 메인화면 -->

@@ -1,6 +1,7 @@
 package egovframework.com.cmm.web;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import egovframework.com.cmm.IncludedCompInfoVO;
@@ -19,6 +21,8 @@ import egovframework.com.cmm.LoginVO;
 import egovframework.com.cmm.annotation.IncludedInfo;
 import egovframework.com.cmm.service.EgovProperties;
 import egovframework.com.cmm.util.EgovUserDetailsHelper;
+import egovframework.com.sym.mnu.mpm.service.EgovMenuManageService;
+import egovframework.com.sym.mnu.mpm.service.MenuManageVO;
 import egovframework.com.uat.uia.service.EgovLoginService;
 
 /**
@@ -63,9 +67,15 @@ public class EgovComIndexController {
 	@Resource(name = "loginService")
 	private EgovLoginService loginService;
 
+    /** EgovMenuManageService */
+	@Resource(name = "meunManageService")
+    private EgovMenuManageService menuManageService;
+
 	@RequestMapping("/index.do")
 	public String index(ModelMap model) {
 		return "egovframework/com/cmm/EgovUnitMain";
+//		return "egovframework/com/EgovMainView";
+		
 	}
 
 	@RequestMapping("/EgovTop.do")
@@ -113,8 +123,36 @@ public class EgovComIndexController {
 	}
 
 	@RequestMapping("/EgovLeft.do")
-	public String setLeftMenu(ModelMap model) {
-
+	public String setLeftMenu(ModelMap model,
+			@ModelAttribute("menuManageVO") MenuManageVO menuManageVO) {
+		
+		/* 권한별 메뉴 접근 방법 */
+//		try {
+//			LoginVO user =
+//					(LoginVO)EgovUserDetailsHelper.getAuthenticatedUser();
+//	
+//			// 미인증 사용자에 대한 보안처리
+//	    	if(user == null) {
+//				return "index";
+//	    	}
+//	 
+//	    	menuManageVO.setTmpId(user.getId());
+//	    	menuManageVO.setTmpPassword(user.getPassword());
+//	    	menuManageVO.setTmpUserSe(user.getUserSe());
+//	    	menuManageVO.setTmpName(user.getName());
+//	    	menuManageVO.setTmpEmail(user.getEmail());
+//	    	menuManageVO.setTmpOrgnztId(user.getOrgnztId());
+//	    	menuManageVO.setTmpUniqId(user.getUniqId());
+//	
+//			List<?> list_headmenu = menuManageService.selectMainMenuHead(menuManageVO);	//로그인 사용자 별 권한있는 메뉴 다 가져오는 쿼리로 수정필
+//			model.addAttribute("list_headmenu", list_headmenu);
+//
+//		} catch (Exception e) {
+//			LOGGER.error("No egovframework.com.uat.uia.web.EgovLoginController!!");
+//		}
+		
+		
+		/* 기존 소스 */
 		Map<Integer, IncludedCompInfoVO> map = new TreeMap<Integer, IncludedCompInfoVO>();
 		RequestMapping rmAnnotation;
 		IncludedInfo annotation;
@@ -162,7 +200,7 @@ public class EgovComIndexController {
 				annotation = methods[i].getAnnotation(IncludedInfo.class);
 
 				if (annotation != null) {
-					//LOG.debug("Found @IncludedInfo Method : " + methods[i] );
+					LOGGER.debug("Found @IncludedInfo Method : " + methods[i] );
 					zooVO = new IncludedCompInfoVO();
 					zooVO.setName(annotation.name());
 					zooVO.setOrder(annotation.order());
