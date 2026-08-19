@@ -67,6 +67,11 @@
     </insert>
     
 
+    <!-- 기업회원 엑셀 대량등록 시작 전 전체 삭제 -->
+    <delete id="deleteAllEntrprsExcel_S">
+        DELETE FROM COMTNENTRPRSMBER
+    </delete>
+
     <!-- 기업회원 엑셀 대량등록 전용 -->
     <insert id="insertEntrprsExcel_S">
         INSERT INTO COMTNENTRPRSMBER

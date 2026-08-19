@@ -41,6 +41,9 @@ import egovframework.com.uss.umt.service.EntrprsManageVO;
  * 4. 법인등록번호
  * 5. 회사명
  * 6. 주민등록번호 2번째 값
+ * 7. 대표이사이름
+ * 8. 신청자명
+ * 9. 대표자 연락처
  */
 @Controller
 public class EgovEntrprsExcelUploadController {
@@ -48,11 +51,11 @@ public class EgovEntrprsExcelUploadController {
     private static final long MAX_FILE_SIZE = 10L * 1024L * 1024L;
 
     private static final String[] HEADER_KR = {
-            "기업회원ID", "비밀번호", "사업자등록번호", "법인등록번호", "회사명", "주민등록번호 2번째 값"
+            "기업회원ID", "비밀번호", "사업자등록번호", "법인등록번호", "회사명", "주민등록번호 2번째 값", "대표이사이름", "신청자명", "대표자 연락처"
     };
 
     private static final String[] HEADER_DB = {
-            "ENTRPRS_MBER_ID", "ENTRPRS_MBER_PASSWORD", "BIZRNO", "JURIRNO", "CMPNY_NM", "APPLCNT_IHIDNUM2"
+            "ENTRPRS_MBER_ID", "ENTRPRS_MBER_PASSWORD", "BIZRNO", "JURIRNO", "CMPNY_NM", "APPLCNT_IHIDNUM2", "CXFC", "APPLCNT_NM", "REPRESENTATIVE_PHONE"
     };
 
     @Resource(name = "entrprsManageService")
@@ -118,6 +121,9 @@ public class EgovEntrprsExcelUploadController {
             sheet.setColumnWidth(3, 22 * 256);
             sheet.setColumnWidth(4, 30 * 256);
             sheet.setColumnWidth(5, 28 * 256);
+            sheet.setColumnWidth(6, 22 * 256);
+            sheet.setColumnWidth(7, 22 * 256);
+            sheet.setColumnWidth(8, 24 * 256);
 
             workbook.write(out);
             out.flush();
@@ -171,9 +177,12 @@ public class EgovEntrprsExcelUploadController {
             Sheet sheet = workbook.getSheetAt(0);
             if (!isValidHeader(sheet.getRow(0), formatter)) {
                 model.addAttribute("resultMessage",
-                        "엑셀 양식이 올바르지 않습니다. 양식 다운로드 후 기업회원ID / 비밀번호 / 사업자등록번호 / 법인등록번호 / 회사명 / 주민등록번호 2번째 값 순서로 작성해 주세요.");
+                        "엑셀 양식이 올바르지 않습니다. 양식 다운로드 후 기업회원ID / 비밀번호 / 사업자등록번호 / 법인등록번호 / 회사명 / 주민등록번호 2번째 값 / 대표이사이름 / 신청자명 / 대표자 연락처 순서로 작성해 주세요.");
                 return "egovframework/com/uss/umt/EgovEntrprsMberExcelUpload";
             }
+
+            // 엑셀 대량등록 시작 전 기존 기업회원 전체 삭제
+            entrprsManageService.deleteAllEntrprsmberExcel();
 
             for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
                 Row row = sheet.getRow(rowIndex);
@@ -190,8 +199,11 @@ public class EgovEntrprsExcelUploadController {
                 String jurirno = onlyNumber(getCellValue(row, 3, formatter));
                 String cmpnyNm = getCellValue(row, 4, formatter);
                 String applcntIhidnum2 = getCellValue(row, 5, formatter);
+                String cxfc = getCellValue(row, 6, formatter);
+                String applcntNm = getCellValue(row, 7, formatter);
+                String representativePhone = getCellValue(row, 8, formatter);
 
-                String validationMessage = validateRow(entrprsmberId, entrprsMberPassword, bizrno, jurirno, cmpnyNm, applcntIhidnum2);
+                String validationMessage = validateRow(entrprsmberId, entrprsMberPassword, bizrno, jurirno, cmpnyNm, applcntIhidnum2, cxfc, applcntNm, representativePhone);
                 if (validationMessage != null) {
                     failCount++;
                     errorList.add(excelRowNo + "행: " + validationMessage);
@@ -210,7 +222,7 @@ public class EgovEntrprsExcelUploadController {
                     continue;
                 }
 
-                EntrprsManageVO vo = createExcelEntrprsManageVO(entrprsmberId, entrprsMberPassword, bizrno, jurirno, cmpnyNm, applcntIhidnum2);
+                EntrprsManageVO vo = createExcelEntrprsManageVO(entrprsmberId, entrprsMberPassword, bizrno, jurirno, cmpnyNm, applcntIhidnum2, cxfc, applcntNm, representativePhone);
 
                 try {
                     entrprsManageService.insertEntrprsmberExcel(vo);
@@ -245,7 +257,10 @@ public class EgovEntrprsExcelUploadController {
                                                         String bizrno,
                                                         String jurirno,
                                                         String cmpnyNm,
-                                                        String applcntIhidnum2) {
+                                                        String applcntIhidnum2,
+                                                        String cxfc,
+                                                        String applcntNm,
+                                                        String representativePhone) {
         EntrprsManageVO vo = new EntrprsManageVO();
 
         // 엑셀 입력값
@@ -255,16 +270,20 @@ public class EgovEntrprsExcelUploadController {
         vo.setJurirno(jurirno);
         vo.setCmpnyNm(cmpnyNm);
         vo.setApplcntIhidnum2(applcntIhidnum2);
+        vo.setCxfc(cxfc);
+        vo.setApplcntNm(applcntNm);
+
+        String[] phone = representativePhone.split("-", -1);
+        vo.setAreaNo(phone[0].trim());
+        vo.setEntrprsMiddleTelno(phone[1].trim());
+        vo.setEntrprsEndTelno(phone[2].trim());
 
         // 사용자 지정 고정값
         vo.setEntrprsSeCode("C0000002");
-        vo.setCxfc("대표이사");
         vo.setZip("123456");
         vo.setAdres("주소");
-        vo.setEntrprsMiddleTelno("1111");
         vo.setFxnum("12345");
         vo.setIndutyCode("Z");
-        vo.setApplcntNm("신청자명");
         vo.setApplcntIhidnum("1111112222222");
         vo.setEntrprsMberSttus("P");
 
@@ -274,8 +293,6 @@ public class EgovEntrprsExcelUploadController {
         vo.setEntrprsMberPasswordCnsr("대량업로드");
         vo.setGroupId("GROUP_00000000000001");
         vo.setDetailAdres("상세주소");
-        vo.setEntrprsEndTelno("2222");
-        vo.setAreaNo("0");
         vo.setApplcntEmailAdres("test@aa.com");
         vo.setLockAt("N");
 
@@ -331,7 +348,10 @@ public class EgovEntrprsExcelUploadController {
                                String bizrno,
                                String jurirno,
                                String cmpnyNm,
-                               String applcntIhidnum2) {
+                               String applcntIhidnum2,
+                               String cxfc,
+                               String applcntNm,
+                               String representativePhone) {
         if (entrprsmberId == null || entrprsmberId.isEmpty()) {
             return "기업회원ID는 필수입니다.";
         }
@@ -358,6 +378,34 @@ public class EgovEntrprsExcelUploadController {
         }
         if (applcntIhidnum2 != null && applcntIhidnum2.length() > 200) {
             return "주민등록번호 2번째 값은 200자 이하로 입력해 주세요.";
+        }
+        if (cxfc == null || cxfc.isEmpty()) {
+            return "대표이사이름은 필수입니다.";
+        }
+        if (cxfc.length() > 50) {
+            return "대표이사이름은 50자 이하로 입력해 주세요.";
+        }
+        if (applcntNm == null || applcntNm.isEmpty()) {
+            return "신청자명은 필수입니다.";
+        }
+        if (applcntNm.length() > 50) {
+            return "신청자명은 50자 이하로 입력해 주세요.";
+        }
+        if (representativePhone == null || representativePhone.isEmpty()) {
+            return "대표자 연락처는 필수입니다.";
+        }
+        String[] phone = representativePhone.split("-", -1);
+        if (phone.length != 3 || phone[0].trim().isEmpty() || phone[1].trim().isEmpty() || phone[2].trim().isEmpty()) {
+            return "대표자 연락처는 지역번호-중간번호-끝번호 형식으로 입력해 주세요. 예: 02-1234-5678";
+        }
+        if (!phone[0].trim().matches("\\d{1,4}")) {
+            return "대표자 연락처의 지역번호는 숫자 1~4자리여야 합니다.";
+        }
+        if (!phone[1].trim().matches("\\d{1,4}")) {
+            return "대표자 연락처의 중간번호는 숫자 1~4자리여야 합니다.";
+        }
+        if (!phone[2].trim().matches("\\d{1,4}")) {
+            return "대표자 연락처의 끝번호는 숫자 1~4자리여야 합니다.";
         }
 
         return null;

@@ -179,6 +179,14 @@ public class EgovEntrprsManageServiceImpl extends EgovAbstractServiceImpl implem
     
 
     /**
+     * 엑셀 대량등록 시작 전 기업회원 전체 삭제
+     */
+    @Override
+    public void deleteAllEntrprsmberExcel() throws Exception {
+        entrprsManageDAO.deleteAllEntrprsmberExcel();
+    }
+
+    /**
      * 엑셀 대량등록용 기업회원 등록
      */
     @Override

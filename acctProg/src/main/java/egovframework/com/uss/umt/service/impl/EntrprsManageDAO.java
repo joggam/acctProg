@@ -48,6 +48,13 @@ public class EntrprsManageDAO extends EgovComAbstractDAO{
 
 
     /**
+     * 엑셀 대량등록 시작 전 기업회원 전체 삭제
+     */
+    public void deleteAllEntrprsmberExcel() {
+        delete("entrprsManageDAO.deleteAllEntrprsExcel_S");
+    }
+
+    /**
      * 엑셀 대량등록용 기업회원 등록
      */
     public String insertEntrprsmberExcel(EntrprsManageVO entrprsManageVO) {

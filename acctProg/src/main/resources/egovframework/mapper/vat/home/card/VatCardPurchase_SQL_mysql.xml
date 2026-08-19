@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="vatCardPurchaseDAO">
+
+    <!--
+        기업회원 목록 조회
+
+        [중요]
+        - 신청자 주민등록번호 2번째 값 : APPLCNT_IHIDNUM2
+        - ENTRPRS_MBER_PASSWORD : 목록에서 조회하지 않음
+          (브라우저/JSP로 전달하지 않음)
+    -->
+    <select id="selectEntrprsMberList"
+            parameterType="vat.home.card.service.VatCardPurchaseVO"
+            resultType="vat.home.card.service.VatCardPurchaseVO">
+
+        SELECT
+              ESNTL_ID          AS uniqId
+            , BIZRNO            AS bizrno
+            , CMPNY_NM          AS cmpnyNm
+            , ENTRPRS_MBER_ID   AS entrprsmberId
+            , APPLCNT_IHIDNUM2  AS applcntIhidnum2
+        FROM COMTNENTRPRSMBER
+        WHERE 1 = 1
+
+        <if test="searchBusinessNo != null and searchBusinessNo != ''">
+            AND REPLACE(BIZRNO, '-', '')
+                LIKE CONCAT(
+                    '%',
+                    REPLACE(#{searchBusinessNo}, '-', ''),
+                    '%'
+                )
+        </if>
+
+        <if test="searchBusinessName != null and searchBusinessName != ''">
+            AND CMPNY_NM LIKE CONCAT('%', #{searchBusinessName}, '%')
+        </if>
+
+        ORDER BY SBSCRB_DE DESC, ENTRPRS_MBER_ID ASC
+        LIMIT #{recordCountPerPage}
+        OFFSET #{firstIndex}
+
+    </select>
+
+
+    <select id="selectEntrprsMberListTotCnt"
+            parameterType="vat.home.card.service.VatCardPurchaseVO"
+            resultType="int">
+
+        SELECT COUNT(1)
+        FROM COMTNENTRPRSMBER
+        WHERE 1 = 1
+
+        <if test="searchBusinessNo != null and searchBusinessNo != ''">
+            AND REPLACE(BIZRNO, '-', '')
+                LIKE CONCAT(
+                    '%',
+                    REPLACE(#{searchBusinessNo}, '-', ''),
+                    '%'
+                )
+        </if>
+
+        <if test="searchBusinessName != null and searchBusinessName != ''">
+            AND CMPNY_NM LIKE CONCAT('%', #{searchBusinessName}, '%')
+        </if>
+
+    </select>
+
+
+    <!--
+        실제 선택처리 시 서버 내부에서만 다시 조회하는 로그인 정보.
+        브라우저에서는 ENTRPRS_MBER_ID만 전달한다.
+    -->
+    <select id="selectEntrprsMberLoginInfo"
+            parameterType="string"
+            resultType="vat.home.card.service.VatCardPurchaseVO">
+
+        SELECT
+              ESNTL_ID                 AS uniqId
+            , BIZRNO                   AS bizrno
+            , CMPNY_NM                 AS cmpnyNm
+            , ENTRPRS_MBER_ID          AS entrprsmberId
+            , APPLCNT_IHIDNUM2         AS applcntIhidnum2
+            , ENTRPRS_MBER_PASSWORD    AS entrprsMberPassword
+        FROM COMTNENTRPRSMBER
+        WHERE ENTRPRS_MBER_ID = #{value}
+
+    </select>
+
+</mapper>

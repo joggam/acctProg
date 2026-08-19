@@ -93,6 +93,12 @@ public interface EgovEntrprsManageService {
 
 
     /**
+     * 엑셀 대량등록 시작 전 기업회원 전체 삭제
+     * @throws Exception
+     */
+    public void deleteAllEntrprsmberExcel() throws Exception;
+
+    /**
      * 엑셀 대량등록용 기업회원 등록
      * - ESNTL_ID는 기존 ID 생성 서비스를 사용
      * - 비밀번호는 기존 기업회원 등록과 동일한 방식으로 암호화

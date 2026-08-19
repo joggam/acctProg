@@ -202,38 +202,6 @@
     text-align: center !important;
 }
 
-.vat_paging {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 7px;
-    margin-top: 20px;
-    position: relative;
-}
-
-.vat_page_btn {
-    height: 30px;
-    padding: 0 11px;
-    border: 1px solid #ccd3dd;
-    background: #fff;
-    cursor: pointer;
-}
-
-.vat_page_current {
-    min-width: 30px;
-    height: 30px;
-    line-height: 30px;
-    text-align: center;
-    background: #334155;
-    color: #fff;
-}
-
-.vat_page_count {
-    position: absolute;
-    right: 0;
-    color: #475467;
-}
-
 @media screen and (max-width: 900px) {
 
     .vat_search_row {
@@ -254,4 +222,183 @@
     .vat_search_button_area {
         margin-left: auto;
     }
+}
+
+/* =========================================================
+ * 전자정부 ui:pagination 전용 보정
+ * - com.css 적용 여부와 관계없이 VatCardPurchase 화면에서
+ *   목록형 bullet/세로배치가 나오지 않도록 강제 보정
+ * ========================================================= */
+.vat_paging {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+    position: relative;
+    min-height: 32px;
+}
+
+.vat_paging .pagination {
+    display: block;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+.vat_paging .pagination ul {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+    vertical-align: middle;
+}
+
+.vat_paging .pagination ul li {
+    display: inline-block !important;
+    float: none !important;
+    margin: 0 2px !important;
+    padding: 0 !important;
+    list-style: none !important;
+    vertical-align: middle;
+}
+
+.vat_paging .pagination ul li::before,
+.vat_paging .pagination ul li::marker {
+    content: none !important;
+    display: none !important;
+}
+
+.vat_paging .pagination ul li a {
+    display: block !important;
+    box-sizing: border-box;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #e0e0e0;
+    background-color: #fff;
+    color: #666;
+    line-height: 26px;
+    text-align: center;
+    text-decoration: none;
+}
+
+.vat_paging .pagination ul li.current a,
+.vat_paging .pagination ul li a:hover {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #334155;
+    background-color: #334155;
+    color: #fff;
+    font-weight: 600;
+    line-height: 26px;
+}
+
+/* 전자정부 image pagination의 처음/이전/다음/마지막 */
+.vat_paging .pagination ul li.first a {
+    background:
+        #fff
+        url('../../../images/egovframework/com/cmm/paging/pagination_first.gif')
+        center center no-repeat;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+.vat_paging .pagination ul li.prev a {
+    background:
+        #fff
+        url('../../../images/egovframework/com/cmm/paging/pagination_prev.gif')
+        center center no-repeat;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+.vat_paging .pagination ul li.next a {
+    background:
+        #fff
+        url('../../../images/egovframework/com/cmm/paging/pagination_next.gif')
+        center center no-repeat;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+.vat_paging .pagination ul li.last a {
+    background:
+        #fff
+        url('../../../images/egovframework/com/cmm/paging/pagination_last.gif')
+        center center no-repeat;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+.vat_paging .vat_page_count {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #475467;
+}
+
+/* =========================================================
+ * 페이징
+ * ========================================================= */
+
+.vat_paging {
+    position: relative;
+    margin-top: 20px;
+    min-height: 32px;
+    text-align: center;
+}
+
+.vat_page_list {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.vat_page_list a,
+.vat_page_list strong {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+
+    border: 1px solid #d8dee8;
+    background: #fff;
+
+    color: #555;
+    font-size: 13px;
+    font-weight: normal;
+    text-decoration: none;
+}
+
+.vat_page_list a:hover {
+    border-color: #334155;
+    color: #334155;
+}
+
+.vat_page_list .vat_page_current {
+    border-color: #334155;
+    background: #334155;
+    color: #fff;
+    font-weight: bold;
+}
+
+.vat_page_list .vat_page_move {
+    padding: 0 12px;
+}
+
+.vat_page_count {
+    position: absolute;
+    right: 0;
+    top: 7px;
+    color: #475467;
+    font-size: 13px;
 }

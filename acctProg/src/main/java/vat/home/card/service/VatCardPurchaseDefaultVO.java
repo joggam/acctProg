@@ -27,6 +27,12 @@ public class VatCardPurchaseDefaultVO implements Serializable {
     /** 공제여부 : ALL / Y / N */
     private String deductionType = "ALL";
 
+    /** 사업자등록번호 검색 */
+    private String searchBusinessNo = "";
+
+    /** 상호 검색 */
+    private String searchBusinessName = "";
+
     /** 현재페이지 */
     private int pageIndex = 1;
 
@@ -91,6 +97,22 @@ public class VatCardPurchaseDefaultVO implements Serializable {
 
     public void setDeductionType(String deductionType) {
         this.deductionType = deductionType;
+    }
+
+    public String getSearchBusinessNo() {
+        return searchBusinessNo;
+    }
+
+    public void setSearchBusinessNo(String searchBusinessNo) {
+        this.searchBusinessNo = searchBusinessNo;
+    }
+
+    public String getSearchBusinessName() {
+        return searchBusinessName;
+    }
+
+    public void setSearchBusinessName(String searchBusinessName) {
+        this.searchBusinessName = searchBusinessName;
     }
 
     public int getPageIndex() {

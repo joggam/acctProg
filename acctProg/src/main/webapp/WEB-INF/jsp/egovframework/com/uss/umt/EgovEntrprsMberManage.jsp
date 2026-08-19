@@ -203,7 +203,7 @@ function fnSearch(){
 	    <td><c:out value="${result.cmpnyNm}"/></td>
 	    <td><c:out value="${result.userNm}"/></td>
 	    <td><c:out value="${result.emailAdres}"/></td>
-	    <td><c:out value="${result.areaNo}"/>)<c:out value="${result.middleTelno}"/>-<c:out value="${result.endTelno}"/></td>
+	    <td><c:out value="${result.areaNo}"/>-<c:out value="${result.middleTelno}"/>-<c:out value="${result.endTelno}"/></td>
 	    <td><c:out value="${fn:substring(result.sbscrbDe,0,10)}"/></td>
 	    <td>
               <c:forEach var="entrprsMberSttus_result" items="${entrprsMberSttus_result}" varStatus="status">

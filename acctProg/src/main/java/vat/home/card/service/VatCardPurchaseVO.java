@@ -7,135 +7,72 @@ public class VatCardPurchaseVO extends VatCardPurchaseDefaultVO {
 
     private static final long serialVersionUID = 1L;
 
-    /** 승인일자 */
-    private String approvalDate;
+    /** 사용자고유ID */
+    private String uniqId;
 
-    /** 가맹점 사업자번호 */
-    private String merchantBusinessNo;
+    /** 사업자등록번호 */
+    private String bizrno;
 
-    /** 가맹점명 */
-    private String merchantName;
+    /** 상호명 */
+    private String cmpnyNm;
 
-    /** 공급가액 */
-    private Long supplyAmount;
+    /** 기업회원 아이디 */
+    private String entrprsmberId;
 
-    /** 세액 */
-    private Long taxAmount;
+    /** 신청자 주민등록번호 2번째 값 : APPLCNT_IHIDNUM2 */
+    private String applcntIhidnum2;
 
-    /** 비과세 */
-    private Long taxFreeAmount;
+    /**
+     * 기업회원 비밀번호 : ENTRPRS_MBER_PASSWORD
+     * 목록 화면에서는 조회/전달하지 않고 선택처리 시 서버에서만 재조회한다.
+     */
+    private String entrprsMberPassword;
 
-    /** 합계 */
-    private Long totalAmount;
-
-    /** 가맹점유형 */
-    private String merchantType;
-
-    /** 업태 */
-    private String businessStatus;
-
-    /** 업종 */
-    private String businessType;
-
-    /** 공제여부 결정 */
-    private String deductionYn;
-
-    /** 비고 */
-    private String remark;
-
-    public String getApprovalDate() {
-        return approvalDate;
+    public String getUniqId() {
+        return uniqId;
     }
 
-    public void setApprovalDate(String approvalDate) {
-        this.approvalDate = approvalDate;
+    public void setUniqId(String uniqId) {
+        this.uniqId = uniqId;
     }
 
-    public String getMerchantBusinessNo() {
-        return merchantBusinessNo;
+    public String getBizrno() {
+        return bizrno;
     }
 
-    public void setMerchantBusinessNo(String merchantBusinessNo) {
-        this.merchantBusinessNo = merchantBusinessNo;
+    public void setBizrno(String bizrno) {
+        this.bizrno = bizrno;
     }
 
-    public String getMerchantName() {
-        return merchantName;
+    public String getCmpnyNm() {
+        return cmpnyNm;
     }
 
-    public void setMerchantName(String merchantName) {
-        this.merchantName = merchantName;
+    public void setCmpnyNm(String cmpnyNm) {
+        this.cmpnyNm = cmpnyNm;
     }
 
-    public Long getSupplyAmount() {
-        return supplyAmount;
+    public String getEntrprsmberId() {
+        return entrprsmberId;
     }
 
-    public void setSupplyAmount(Long supplyAmount) {
-        this.supplyAmount = supplyAmount;
+    public void setEntrprsmberId(String entrprsmberId) {
+        this.entrprsmberId = entrprsmberId;
     }
 
-    public Long getTaxAmount() {
-        return taxAmount;
+    public String getApplcntIhidnum2() {
+        return applcntIhidnum2;
     }
 
-    public void setTaxAmount(Long taxAmount) {
-        this.taxAmount = taxAmount;
+    public void setApplcntIhidnum2(String applcntIhidnum2) {
+        this.applcntIhidnum2 = applcntIhidnum2;
     }
 
-    public Long getTaxFreeAmount() {
-        return taxFreeAmount;
+    public String getEntrprsMberPassword() {
+        return entrprsMberPassword;
     }
 
-    public void setTaxFreeAmount(Long taxFreeAmount) {
-        this.taxFreeAmount = taxFreeAmount;
-    }
-
-    public Long getTotalAmount() {
-        return totalAmount;
-    }
-
-    public void setTotalAmount(Long totalAmount) {
-        this.totalAmount = totalAmount;
-    }
-
-    public String getMerchantType() {
-        return merchantType;
-    }
-
-    public void setMerchantType(String merchantType) {
-        this.merchantType = merchantType;
-    }
-
-    public String getBusinessStatus() {
-        return businessStatus;
-    }
-
-    public void setBusinessStatus(String businessStatus) {
-        this.businessStatus = businessStatus;
-    }
-
-    public String getBusinessType() {
-        return businessType;
-    }
-
-    public void setBusinessType(String businessType) {
-        this.businessType = businessType;
-    }
-
-    public String getDeductionYn() {
-        return deductionYn;
-    }
-
-    public void setDeductionYn(String deductionYn) {
-        this.deductionYn = deductionYn;
-    }
-
-    public String getRemark() {
-        return remark;
-    }
-
-    public void setRemark(String remark) {
-        this.remark = remark;
+    public void setEntrprsMberPassword(String entrprsMberPassword) {
+        this.entrprsMberPassword = entrprsMberPassword;
     }
 }
