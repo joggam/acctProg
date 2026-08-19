@@ -112,49 +112,6 @@ function fn_vat_excelDownload() {
 
     <h1>사업용신용카드 매입세액 공제 확인/변경</h1>
 
-    <!-- 안내 -->
-    <div class="vat_notice_box">
-        <ul>
-            <li>
-                사업용신용카드 거래건별 <strong>매입세액 공제대상 여부</strong>를
-                <strong>확인</strong>하는 화면입니다.
-            </li>
-            <li>
-                공제로 분류된 경우라도 사업 관련성, 세금계산서 수취 여부 등을 확인한 후
-                공제 여부를 확인하시기 바랍니다.
-            </li>
-            <li>
-                사업용신용카드 매입금액 자료는 카드사 제공 자료를 기준으로 조회됩니다.
-            </li>
-        </ul>
-    </div>
-
-    <!-- 사업자 기본정보 -->
-    <div class="vat_section">
-        <h2>사업자 기본정보</h2>
-
-        <table class="vat_form_table">
-            <caption>사업자 기본정보</caption>
-            <colgroup>
-                <col style="width:15%;">
-                <col style="width:35%;">
-                <col style="width:15%;">
-                <col style="width:35%;">
-            </colgroup>
-            <tbody>
-            <tr>
-                <th scope="row">사업자등록번호</th>
-                <td>
-                    <c:out value="${businessNo}" />
-                </td>
-                <th scope="row">상호</th>
-                <td>
-                    <c:out value="${businessName}" />
-                </td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
 
     <!-- 조회조건 -->
     <div class="vat_search_box">
@@ -264,13 +221,41 @@ function fn_vat_excelDownload() {
                 </select>
             </div>
 
-            <div class="vat_search_button_area">
-                <input type="button"
-                       class="vat_btn vat_btn_search"
-                       value="조회"
-                       onclick="fn_vat_search();">
-            </div>
         </div>
+        
+        
+        <div class="vat_search_row">
+            <div class="vat_search_title">
+                사업자등록번호
+            </div>
+
+            <div class="vat_search_content">
+            	<input 	type="text"
+               			class="input2"
+                        name="searchBusinessNo"
+                        title="사업자등록번호">
+       		</div>
+       </div>
+        <div class="vat_search_row">
+            <div class="vat_search_title">
+                상호
+            </div>
+
+            <div class="vat_search_content">
+            	<input 	type="text"
+               			class="input2"
+                        name="searchBusinessName"
+                        title="상호">
+       		</div>
+       		
+	       <div class="vat_search_button_area">
+	            <input type="button"
+	                       class="vat_btn vat_btn_search"
+	                       value="조회"
+	                       onclick="fn_vat_search();">
+	       </div>
+       </div>
+       
 
     </div>
 

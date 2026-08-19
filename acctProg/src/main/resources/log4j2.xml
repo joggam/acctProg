@@ -7,24 +7,44 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="java.sql" level="DEBUG" additivity="false">
-            <AppenderRef ref="console" />
-        </Logger>
-        <Logger name="egovframework" level="DEBUG" additivity="false">
-            <AppenderRef ref="console" />
-        </Logger>
-        <Logger name="org.egovframe" level="DEBUG" additivity="false">
-            <AppenderRef ref="console" />
-        </Logger>
-		<!-- log SQL with timing information, post execution -->
+	    <!-- 내가 만든 소스 -->
+	    <Logger name="vat" level="DEBUG" additivity="false">
+	        <AppenderRef ref="console" />
+	    </Logger>
+	    <Logger name="com.com.interceptor.RequestLogInterceptor"
+	        level="INFO"
+	        additivity="false">
+	    	<AppenderRef ref="console" />
+	    </Logger>
+	
+	    <!-- SQL -->
 	    <Logger name="jdbc.sqltiming" level="DEBUG" additivity="false">
 	        <AppenderRef ref="console" />
 	    </Logger>
-	    <Logger name="org.springframework" level="INFO" additivity="false">
+	
+	    <!-- Spring 에러/경고만 -->
+	    <Logger name="org.springframework" level="WARN" additivity="false">
 	        <AppenderRef ref="console" />
 	    </Logger>
-        <Root level="INFO">
-            <AppenderRef ref="console" />
-        </Root>
+	
+	    <!-- 전자정부 내부 에러/경고만 -->
+	    <Logger name="egovframework" level="WARN" additivity="false">
+	        <AppenderRef ref="console" />
+	    </Logger>
+	
+	    <Logger name="org.egovframe" level="WARN" additivity="false">
+	        <AppenderRef ref="console" />
+	    </Logger>
+	    
+	    <Logger name="egovframework.com.sym.log.plg.service.EgovPrivacyLogAspect"
+		        level="OFF"
+		        additivity="false">
+		</Logger>
+	
+	    <!-- 나머지는 경고 이상만 -->
+	    <Root level="WARN">
+	        <AppenderRef ref="console" />
+	    </Root>
+	
     </Loggers>
 </Configuration>

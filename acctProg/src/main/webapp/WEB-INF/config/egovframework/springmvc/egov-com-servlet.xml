@@ -52,12 +52,17 @@
     <bean id="localeResolver" class="org.springframework.web.servlet.i18n.SessionLocaleResolver" />
     
 	<bean id="egovWebLogInterceptor" class="egovframework.com.sym.log.wlg.web.EgovWebLogInterceptor" />
+	
+	<!-- 요청 URL 및 Controller Method 로그 -->
+	<bean id="requestLogInterceptor"
+	      class="com.com.interceptor.RequestLogInterceptor" />
 
     <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
         <property name="interceptors">
             <list>
                 <ref bean="localeChangeInterceptor"/>
                 <ref bean="egovWebLogInterceptor"/>
+                <ref bean="requestLogInterceptor"/>
             </list>
         </property>
     </bean>
