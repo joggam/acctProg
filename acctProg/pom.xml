@@ -61,14 +61,13 @@
 		    <artifactId>selenium-java</artifactId>
 		    <version>4.46.0</version>
 		</dependency>
-		
-		<!-- Apache POI : .xls 파일 처리 -->
+		<!-- Apache POI : xls / xlsx 엑셀 처리 -->
 		<dependency>
 		    <groupId>org.apache.poi</groupId>
-		    <artifactId>poi</artifactId>
-		    <version>5.4.1</version>
-		
+		    <artifactId>poi-ooxml</artifactId>
+		    <version>5.2.5</version>
 		    <exclusions>
+		        <!-- 기존 전자정부 Log4j와 충돌 방지 -->
 		        <exclusion>
 		            <groupId>org.apache.logging.log4j</groupId>
 		            <artifactId>log4j-api</artifactId>
@@ -476,11 +475,6 @@
 		    <groupId>com.github.javaparser</groupId>
 		    <artifactId>javaparser-core</artifactId>
 			<version>3.26.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.xmlbeans</groupId>
-			<artifactId>xmlbeans</artifactId>
-			<version>2.6.0</version>
 		</dependency>
 
         <!-- 3rd party 라이브러리로 별도의 설치 필요 끝 -->

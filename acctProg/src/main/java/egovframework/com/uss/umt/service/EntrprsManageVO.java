@@ -45,6 +45,10 @@ public class EntrprsManageVO  extends UserDefaultVO{
 	 */
 	private String applcntIhidnum;
 	/**
+	 * 신청자 주민등록번호 2번째 값
+	 */
+	private String applcntIhidnum2;
+	/**
 	 * 신청자 명
 	 */
 	private String applcntNm;
@@ -212,6 +216,22 @@ public class EntrprsManageVO  extends UserDefaultVO{
 	 */
 	public void setApplcntIhidnum(String applcntIhidnum) {
 		this.applcntIhidnum = applcntIhidnum;
+	}
+
+	/**
+	 * applcntIhidnum2 attribute 값을 리턴한다.
+	 * @return String
+	 */
+	public String getApplcntIhidnum2() {
+		return applcntIhidnum2;
+	}
+
+	/**
+	 * applcntIhidnum2 attribute 값을 설정한다.
+	 * @param applcntIhidnum2 String
+	 */
+	public void setApplcntIhidnum2(String applcntIhidnum2) {
+		this.applcntIhidnum2 = applcntIhidnum2;
 	}
 	/**
 	 * applcntNm attribute 값을  리턴한다.

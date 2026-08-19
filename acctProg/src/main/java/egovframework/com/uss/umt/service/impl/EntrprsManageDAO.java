@@ -46,6 +46,21 @@ public class EntrprsManageDAO extends EgovComAbstractDAO{
         return String.valueOf((int)insert("entrprsManageDAO.insertEntrprs_S", entrprsManageVO));
     }
 
+
+    /**
+     * 엑셀 대량등록용 기업회원 등록
+     */
+    public String insertEntrprsmberExcel(EntrprsManageVO entrprsManageVO) {
+        return String.valueOf((int)insert("entrprsManageDAO.insertEntrprsExcel_S", entrprsManageVO));
+    }
+
+    /**
+     * 기업회원 아이디 중복 건수 조회
+     */
+    public int selectEntrprsmberIdCnt(String entrprsmberId) {
+        return (Integer) selectOne("entrprsManageDAO.selectEntrprsmberIdCnt", entrprsmberId);
+    }
+
     /**
      * 기 등록된 사용자 중 검색조건에 맞는 기업회원의 정보를 데이터베이스에서 읽어와 화면에 출력
      * @param entrprsmberId 상세조회대상 기업회원아이디

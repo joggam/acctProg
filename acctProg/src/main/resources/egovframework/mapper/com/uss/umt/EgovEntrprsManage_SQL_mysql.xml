@@ -66,6 +66,79 @@
         
     </insert>
     
+
+    <!-- 기업회원 엑셀 대량등록 전용 -->
+    <insert id="insertEntrprsExcel_S">
+        INSERT INTO COMTNENTRPRSMBER
+        (
+            ESNTL_ID,
+            ENTRPRS_MBER_ID,
+            ENTRPRS_SE_CODE,
+            BIZRNO,
+            JURIRNO,
+            CMPNY_NM,
+            CXFC,
+            ZIP,
+            ADRES,
+            ENTRPRS_MIDDLE_TELNO,
+            FXNUM,
+            INDUTY_CODE,
+            APPLCNT_NM,
+            APPLCNT_IHIDNUM,
+            APPLCNT_IHIDNUM2,
+            SBSCRB_DE,
+            ENTRPRS_MBER_STTUS,
+            ENTRPRS_MBER_PASSWORD,
+            ENTRPRS_MBER_PASSWORD_HINT,
+            ENTRPRS_MBER_PASSWORD_CNSR,
+            GROUP_ID,
+            DETAIL_ADRES,
+            ENTRPRS_END_TELNO,
+            AREA_NO,
+            APPLCNT_EMAIL_ADRES,
+            LOCK_AT,
+            LOCK_CNT,
+            CHG_PWD_LAST_PNTTM
+        )
+        VALUES
+        (
+            #{uniqId},
+            #{entrprsmberId},
+            #{entrprsSeCode},
+            #{bizrno},
+            #{jurirno},
+            #{cmpnyNm},
+            #{cxfc},
+            #{zip},
+            #{adres},
+            #{entrprsMiddleTelno},
+            #{fxnum},
+            #{indutyCode},
+            #{applcntNm},
+            #{applcntIhidnum},
+            #{applcntIhidnum2},
+            sysdate(),
+            #{entrprsMberSttus},
+            #{entrprsMberPassword},
+            #{entrprsMberPasswordHint},
+            #{entrprsMberPasswordCnsr},
+            #{groupId},
+            #{detailAdres},
+            #{entrprsEndTelno},
+            #{areaNo},
+            #{applcntEmailAdres},
+            #{lockAt},
+            0,
+            sysdate()
+        )
+    </insert>
+
+    <select id="selectEntrprsmberIdCnt" resultType="int">
+        SELECT COUNT(1)
+          FROM COMTNENTRPRSMBER
+         WHERE ENTRPRS_MBER_ID = #{_parameter}
+    </select>
+
     <delete id="deleteEntrprs_S">
         
             DELETE FROM COMTNENTRPRSMBER 

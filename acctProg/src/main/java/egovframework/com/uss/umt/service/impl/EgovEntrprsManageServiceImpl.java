@@ -177,6 +177,31 @@ public class EgovEntrprsManageServiceImpl extends EgovAbstractServiceImpl implem
     	return entrprsManageDAO.selectEntrprsMberListTotCnt(userSearchVO);
     }
     
+
+    /**
+     * 엑셀 대량등록용 기업회원 등록
+     */
+    @Override
+    public String insertEntrprsmberExcel(EntrprsManageVO entrprsManageVO) throws Exception {
+        String uniqId = idgenService.getNextStringId();
+        entrprsManageVO.setUniqId(uniqId);
+
+        String pass = EgovFileScrty.encryptPassword(
+                entrprsManageVO.getEntrprsMberPassword(),
+                EgovStringUtil.isNullToString(entrprsManageVO.getEntrprsmberId()));
+        entrprsManageVO.setEntrprsMberPassword(pass);
+
+        return entrprsManageDAO.insertEntrprsmberExcel(entrprsManageVO);
+    }
+
+    /**
+     * 기업회원 아이디 중복 건수 조회
+     */
+    @Override
+    public int selectEntrprsmberIdCnt(String entrprsmberId) throws Exception {
+        return entrprsManageDAO.selectEntrprsmberIdCnt(entrprsmberId);
+    }
+
     /**
      * 로그인인증제한 해제 
      * @param entrprsManageVO 기업회원정보

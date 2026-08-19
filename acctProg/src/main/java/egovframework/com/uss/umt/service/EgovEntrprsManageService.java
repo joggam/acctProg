@@ -91,6 +91,25 @@ public interface EgovEntrprsManageService {
     public int selectEntrprsMberListTotCnt(UserDefaultVO userSearchVO) throws Exception;
 
 
+
+    /**
+     * 엑셀 대량등록용 기업회원 등록
+     * - ESNTL_ID는 기존 ID 생성 서비스를 사용
+     * - 비밀번호는 기존 기업회원 등록과 동일한 방식으로 암호화
+     * @param entrprsManageVO 기업회원 등록정보
+     * @return 등록결과
+     * @throws Exception
+     */
+    public String insertEntrprsmberExcel(EntrprsManageVO entrprsManageVO) throws Exception;
+
+    /**
+     * 기업회원 아이디 중복 건수 조회
+     * @param entrprsmberId 기업회원 아이디
+     * @return 중복 건수
+     * @throws Exception
+     */
+    public int selectEntrprsmberIdCnt(String entrprsmberId) throws Exception;
+
     /**
      * 로그인인증제한 해제 
      * @param entrprsManageVO 기업회원정보

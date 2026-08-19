@@ -99,6 +99,11 @@ function fnAddUserView() {
 	document.listForm.action = "<c:url value='/uss/umt/EgovEntrprsMberInsertView.do'/>";
     document.listForm.submit();
 }
+
+function fnExcelUploadView() {
+    document.listForm.action = "<c:url value='/uss/umt/EgovEntrprsMberExcelUploadView.do'/>";
+    document.listForm.submit();
+}
 function fnLinkPage(pageNo){
     document.listForm.pageIndex.value = pageNo;
     document.listForm.action = "<c:url value='/uss/umt/EgovEntrprsMberManage.do'/>";
@@ -146,6 +151,7 @@ function fnSearch(){
 				<input type="submit" class="s_btn" value="<spring:message code="button.inquire" />" title="<spring:message code="title.inquire" /> <spring:message code="input.button" />" /><!-- 조회 -->
 				<input type="button" class="s_btn" onClick="fnDeleteUser(); return false;" value="<spring:message code="title.delete" />" title="<spring:message code="title.delete" /> <spring:message code="input.button" />" /><!-- 삭제 -->
 				<span class="btn_b"><a href="<c:url value='/uss/umt/EgovEntrprsMberInsertView.do'/>" onClick="fnAddUserView(); return false;"  title="<spring:message code="button.create" /> <spring:message code="input.button" />"><spring:message code="button.create" /></a></span><!-- 등록 -->
+                <span class="btn_b"><a href="<c:url value='/uss/umt/EgovEntrprsMberExcelUploadView.do'/>" onClick="fnExcelUploadView(); return false;" title="엑셀대량업로드">엑셀대량업로드</a></span>
 			</li>
 		</ul>
 	</div>
