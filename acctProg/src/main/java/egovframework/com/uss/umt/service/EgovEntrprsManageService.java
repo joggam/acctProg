@@ -109,6 +109,11 @@ public interface EgovEntrprsManageService {
     public String insertEntrprsmberExcel(EntrprsManageVO entrprsManageVO) throws Exception;
 
     /**
+     * 엑셀 대량등록용 사업자등록번호 등록
+     */
+    public void insertEntrprsmberBizrExcel(EntrprsManageVO entrprsManageVO) throws Exception;
+
+    /**
      * 기업회원 아이디 중복 건수 조회
      * @param entrprsmberId 기업회원 아이디
      * @return 중복 건수

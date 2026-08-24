@@ -55,6 +55,7 @@ public class EntrprsManageVO  extends UserDefaultVO{
 	/**
 	 * 사업자번호
 	 */
+	private Long bizrSeq;
 	private String bizrno;
 	/**
 	 * 회사명
@@ -253,6 +254,14 @@ public class EntrprsManageVO  extends UserDefaultVO{
 	 * bizrno attribute 값을  리턴한다.
 	 * @return String
 	 */
+	public Long getBizrSeq() {
+		return bizrSeq;
+	}
+
+	public void setBizrSeq(Long bizrSeq) {
+		this.bizrSeq = bizrSeq;
+	}
+
 	public String getBizrno() {
 		return bizrno;
 	}

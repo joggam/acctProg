@@ -51,6 +51,7 @@ public class EntrprsManageDAO extends EgovComAbstractDAO{
      * 엑셀 대량등록 시작 전 기업회원 전체 삭제
      */
     public void deleteAllEntrprsmberExcel() {
+        delete("entrprsManageDAO.deleteAllEntrprsBizrExcel_S");
         delete("entrprsManageDAO.deleteAllEntrprsExcel_S");
     }
 
@@ -59,6 +60,10 @@ public class EntrprsManageDAO extends EgovComAbstractDAO{
      */
     public String insertEntrprsmberExcel(EntrprsManageVO entrprsManageVO) {
         return String.valueOf((int)insert("entrprsManageDAO.insertEntrprsExcel_S", entrprsManageVO));
+    }
+
+    public void insertEntrprsmberBizrExcel(EntrprsManageVO entrprsManageVO) {
+        insert("entrprsManageDAO.insertEntrprsBizrExcel_S", entrprsManageVO);
     }
 
     /**

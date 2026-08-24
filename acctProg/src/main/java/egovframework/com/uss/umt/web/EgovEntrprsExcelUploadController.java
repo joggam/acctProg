@@ -37,7 +37,7 @@ import egovframework.com.uss.umt.service.EntrprsManageVO;
  * 엑셀 입력 컬럼
  * 1. 기업회원ID
  * 2. 비밀번호
- * 3. 사업자등록번호
+ * 3. 사업자등록번호 (같은 기업회원ID에 여러 사업자번호 허용)
  * 4. 법인등록번호
  * 5. 회사명
  * 6. 주민등록번호 앞 6자리
@@ -166,6 +166,7 @@ public class EgovEntrprsExcelUploadController {
         }
 
         Set<String> fileIdSet = new HashSet<String>();
+        Set<String> fileBizrSet = new HashSet<String>();
         DataFormatter formatter = new DataFormatter(Locale.KOREA);
 
         try (InputStream in = excelFile.getInputStream();
@@ -223,15 +224,10 @@ public class EgovEntrprsExcelUploadController {
                     continue;
                 }
 
-                if (!fileIdSet.add(entrprsmberId)) {
+                if (!fileBizrSet.add(bizrno)) {
                     failCount++;
-                    errorList.add(excelRowNo + "행: 엑셀 파일 안에서 기업회원ID가 중복되었습니다. [" + entrprsmberId + "]");
-                    continue;
-                }
-
-                if (entrprsManageService.selectEntrprsmberIdCnt(entrprsmberId) > 0) {
-                    failCount++;
-                    errorList.add(excelRowNo + "행: 이미 등록된 기업회원ID입니다. [" + entrprsmberId + "]");
+                    errorList.add(excelRowNo + "행: 엑셀 파일 안에서 사업자등록번호가 중복되었습니다. ["
+                            + bizrno + "]");
                     continue;
                 }
 
@@ -247,12 +243,24 @@ public class EgovEntrprsExcelUploadController {
                         applcntNm,
                         representativePhone);
 
+                boolean firstMemberRow = fileIdSet.add(entrprsmberId);
+
                 try {
-                    entrprsManageService.insertEntrprsmberExcel(vo);
+                    // 같은 기업회원ID는 COMTNENTRPRSMBER에 최초 1회만 등록
+                    if (firstMemberRow) {
+                        entrprsManageService.insertEntrprsmberExcel(vo);
+                    }
+
+                    // 사업자등록번호는 행마다 COMTNENTRPRSBIZR에 등록
+                    entrprsManageService.insertEntrprsmberBizrExcel(vo);
                     successCount++;
                 } catch (Exception e) {
+                    if (firstMemberRow) {
+                        fileIdSet.remove(entrprsmberId);
+                    }
                     failCount++;
-                    errorList.add(excelRowNo + "행: 등록 처리 중 오류가 발생했습니다. [" + entrprsmberId + "]");
+                    errorList.add(excelRowNo + "행: 등록 처리 중 오류가 발생했습니다. ["
+                            + entrprsmberId + " / " + bizrno + "]");
                 }
             }
 
@@ -387,11 +395,11 @@ public class EgovEntrprsExcelUploadController {
         if (entrprsMberPassword == null || entrprsMberPassword.isEmpty()) {
             return "비밀번호는 필수입니다.";
         }
-        if ((bizrno == null || bizrno.isEmpty()) && (jurirno == null || jurirno.isEmpty())) {
-            return "사업자등록번호 또는 법인등록번호 중 하나는 필수입니다.";
+        if (bizrno == null || bizrno.isEmpty()) {
+            return "사업자등록번호는 필수입니다.";
         }
-        if (bizrno != null && !bizrno.isEmpty() && bizrno.length() != 10) {
-            return "사업자등록번호는 입력하는 경우 숫자 10자리여야 합니다.";
+        if (bizrno.length() != 10) {
+            return "사업자등록번호는 숫자 10자리여야 합니다.";
         }
         if (jurirno != null && !jurirno.isEmpty() && jurirno.length() != 13) {
             return "법인등록번호는 입력하는 경우 숫자 13자리여야 합니다.";

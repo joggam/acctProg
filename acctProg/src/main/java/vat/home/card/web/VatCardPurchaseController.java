@@ -99,23 +99,23 @@ public class VatCardPurchaseController {
 
     /**
      * 체크된 기업회원의 홈택스 자료 내려받기/가공 처리.
-     * 화면에서는 selectedEntrprsMber 값으로 ENTRPRS_MBER_ID만 전달한다.
+     * 화면에서는 selectedBizrSeq 값으로 COMTNENTRPRSBIZR.BIZR_SEQ만 전달한다.
      */
     @RequestMapping("/vat/home/card/downloadSelectedEntrprsMber.do")
     public String downloadSelectedEntrprsMber(
-            @RequestParam(value = "selectedEntrprsMber", required = false)
-            String[] selectedEntrprsMber,
+            @RequestParam(value = "selectedBizrSeq", required = false)
+            String[] selectedBizrSeq,
             @ModelAttribute("searchVO") VatCardPurchaseVO searchVO,
             ModelMap model) throws Exception {
 
         setDefaultSearchCondition(searchVO);
 
-        if (selectedEntrprsMber == null
-                || selectedEntrprsMber.length == 0) {
+        if (selectedBizrSeq == null
+                || selectedBizrSeq.length == 0) {
 
             model.addAttribute(
                     "resultMsg",
-                    "내려받을 기업회원을 선택해 주세요."
+                    "내려받을 사업자등록번호를 선택해 주세요."
             );
 
             return selectVatCardPurchaseList(searchVO, model);
@@ -137,17 +137,19 @@ public class VatCardPurchaseController {
         List<String> failMessages = new ArrayList<String>();
         List<String> resultFiles = new ArrayList<String>();
 
-        for (String entrprsmberId : selectedEntrprsMber) {
+        for (String bizrSeqValue : selectedBizrSeq) {
 
-            if (entrprsmberId == null
-                    || entrprsmberId.trim().length() == 0) {
+            if (bizrSeqValue == null
+                    || bizrSeqValue.trim().length() == 0) {
                 continue;
             }
 
             try {
+                Long bizrSeq = Long.valueOf(bizrSeqValue.trim());
+
                 File resultFile =
                         vatCardPurchaseService.downloadHometaxExcel(
-                                entrprsmberId.trim(),
+                                bizrSeq,
                                 year,
                                 quarter
                         );
@@ -170,7 +172,7 @@ public class VatCardPurchaseController {
                 }
 
                 failMessages.add(
-                        entrprsmberId
+                        "BIZR_SEQ=" + bizrSeqValue
                         + " : "
                         + message
                 );
@@ -187,7 +189,7 @@ public class VatCardPurchaseController {
                     "resultMsg",
                     "선택한 "
                     + successCount
-                    + "개 기업의 홈택스 자료 내려받기가 완료되었습니다."
+                    + "개 사업자의 홈택스 자료 내려받기가 완료되었습니다."
             );
         } else {
             model.addAttribute(
@@ -209,19 +211,19 @@ public class VatCardPurchaseController {
      */
     @RequestMapping("/vat/home/card/downloadMergedEntrprsMber.do")
     public String downloadMergedEntrprsMber(
-            @RequestParam(value = "selectedEntrprsMber", required = false)
-            String[] selectedEntrprsMber,
+            @RequestParam(value = "selectedBizrSeq", required = false)
+            String[] selectedBizrSeq,
             @ModelAttribute("searchVO") VatCardPurchaseVO searchVO,
             ModelMap model) throws Exception {
 
         setDefaultSearchCondition(searchVO);
 
-        if (selectedEntrprsMber == null
-                || selectedEntrprsMber.length == 0) {
+        if (selectedBizrSeq == null
+                || selectedBizrSeq.length == 0) {
 
             model.addAttribute(
                     "resultMsg",
-                    "분류내려받기 할 기업회원을 선택해 주세요."
+                    "분류내려받기 할 사업자등록번호를 선택해 주세요."
             );
 
             return selectVatCardPurchaseList(searchVO, model);
@@ -242,7 +244,7 @@ public class VatCardPurchaseController {
         try {
             File resultFile =
                     vatCardPurchaseService.downloadMergedHometaxExcel(
-                            selectedEntrprsMber,
+                            selectedBizrSeq,
                             year,
                             quarter
                     );
@@ -258,7 +260,7 @@ public class VatCardPurchaseController {
 
             model.addAttribute(
                     "resultMsg",
-                    "선택한 기업 자료를 한 파일로 분류내려받기 완료했습니다."
+                    "선택한 사업자 자료를 한 파일로 분류내려받기 완료했습니다."
             );
 
         } catch (Exception e) {

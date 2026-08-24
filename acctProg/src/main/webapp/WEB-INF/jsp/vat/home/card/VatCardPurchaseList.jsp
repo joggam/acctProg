@@ -237,7 +237,7 @@ function fn_vat_checkAll(checkAll) {
 
     var rowChecks =
         document.getElementsByName(
-            "selectedEntrprsMber"
+            "selectedBizrSeq"
         );
 
     for (var i = 0;
@@ -253,12 +253,12 @@ function fn_vat_checkRow() {
 
     var checkAll =
         document.getElementById(
-            "checkAllEntrprsMber"
+            "checkAllBizr"
         );
 
     var rowChecks =
         document.getElementsByName(
-            "selectedEntrprsMber"
+            "selectedBizrSeq"
         );
 
     if (!checkAll) {
@@ -286,18 +286,18 @@ function fn_vat_checkRow() {
 /**
  * 선택 기업회원 홈택스 자료 내려받기.
  *
- * 브라우저에서는 ENTRPRS_MBER_ID만 서버로 보낸다.
+ * 브라우저에서는 COMTNENTRPRSBIZR.BIZR_SEQ만 서버로 보낸다.
  * 비밀번호는 hidden input으로 생성하지 않는다.
  */
 function fn_vat_downloadSelected() {
 
     var checked =
         document.querySelectorAll(
-            'input[name="selectedEntrprsMber"]:checked'
+            'input[name="selectedBizrSeq"]:checked'
         );
 
     if (checked.length === 0) {
-        alert("내려받을 기업회원을 선택해 주세요.");
+        alert("내려받을 사업자등록번호를 선택해 주세요.");
         return;
     }
 
@@ -319,11 +319,11 @@ function fn_vat_downloadMerged() {
 
     var checked =
         document.querySelectorAll(
-            'input[name="selectedEntrprsMber"]:checked'
+            'input[name="selectedBizrSeq"]:checked'
         );
 
     if (checked.length === 0) {
-        alert("분류내려받기 할 기업회원을 선택해 주세요.");
+        alert("분류내려받기 할 사업자등록번호를 선택해 주세요.");
         return;
     }
 
@@ -612,7 +612,7 @@ function fn_vat_excelDownload() {
             <tr>
                 <th scope="col">
                     <input type="checkbox"
-                           id="checkAllEntrprsMber"
+                           id="checkAllBizr"
                            title="전체 선택"
                            onclick="fn_vat_checkAll(this);">
                 </th>
@@ -646,12 +646,12 @@ function fn_vat_excelDownload() {
                     <td>
                         <!--
                             안전한 방식:
-                            화면에는 기업회원 ID만 전달한다.
+                            화면에는 사업자번호 PK(BIZR_SEQ)만 전달한다.
                             ENTRPRS_MBER_PASSWORD hidden 없음.
                         -->
                         <input type="checkbox"
-                               name="selectedEntrprsMber"
-                               value="<c:out value='${resultInfo.entrprsmberId}'/>"
+                               name="selectedBizrSeq"
+                               value="<c:out value='${resultInfo.bizrSeq}'/>"
                                title="행 선택"
                                onclick="fn_vat_checkRow();">
                     </td>

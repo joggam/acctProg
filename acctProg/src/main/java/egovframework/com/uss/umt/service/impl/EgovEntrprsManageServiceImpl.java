@@ -211,6 +211,11 @@ public class EgovEntrprsManageServiceImpl extends EgovAbstractServiceImpl implem
         return entrprsManageDAO.insertEntrprsmberExcel(entrprsManageVO);
     }
 
+    @Override
+    public void insertEntrprsmberBizrExcel(EntrprsManageVO entrprsManageVO) throws Exception {
+        entrprsManageDAO.insertEntrprsmberBizrExcel(entrprsManageVO);
+    }
+
     /**
      * 기업회원 아이디 중복 건수 조회
      */

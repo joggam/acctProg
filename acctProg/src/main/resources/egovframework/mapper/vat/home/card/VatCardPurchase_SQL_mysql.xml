@@ -4,90 +4,70 @@
 
 <mapper namespace="vatCardPurchaseDAO">
 
-    <!--
-        기업회원 목록 조회
-
-        [중요]
-        - 신청자 주민등록번호 2번째 값 : APPLCNT_IHIDNUM2
-        - HOMETAX_PASSWORD : 목록에서 조회하지 않음
-          (브라우저/JSP로 전달하지 않음)
-    -->
+    <!-- 사업자등록번호 1건을 한 행으로 조회 -->
     <select id="selectEntrprsMberList"
             parameterType="vat.home.card.service.VatCardPurchaseVO"
             resultType="vat.home.card.service.VatCardPurchaseVO">
-
         SELECT
-              ESNTL_ID          AS uniqId
-            , BIZRNO            AS bizrno
-            , CMPNY_NM          AS cmpnyNm
-            , ENTRPRS_MBER_ID   AS entrprsmberId
-            , APPLCNT_IHIDNUM2  AS applcntIhidnum2
-        FROM COMTNENTRPRSMBER
+              M.ESNTL_ID            AS uniqId
+            , B.BIZR_SEQ            AS bizrSeq
+            , B.BIZRNO              AS bizrno
+            , M.CMPNY_NM            AS cmpnyNm
+            , M.ENTRPRS_MBER_ID     AS entrprsmberId
+            , M.APPLCNT_IHIDNUM2    AS applcntIhidnum2
+        FROM COMTNENTRPRSMBER M
+        INNER JOIN COMTNENTRPRSBIZR B
+                ON M.ENTRPRS_MBER_ID = B.ENTRPRS_MBER_ID
+               AND B.USE_AT = 'Y'
         WHERE 1 = 1
-
         <if test="searchBusinessNo != null and searchBusinessNo != ''">
-            AND REPLACE(BIZRNO, '-', '')
-                LIKE CONCAT(
-                    '%',
-                    REPLACE(#{searchBusinessNo}, '-', ''),
-                    '%'
-                )
+            AND REPLACE(B.BIZRNO, '-', '')
+                LIKE CONCAT('%', REPLACE(#{searchBusinessNo}, '-', ''), '%')
         </if>
-
         <if test="searchBusinessName != null and searchBusinessName != ''">
-            AND CMPNY_NM LIKE CONCAT('%', #{searchBusinessName}, '%')
+            AND M.CMPNY_NM LIKE CONCAT('%', #{searchBusinessName}, '%')
         </if>
-
-        ORDER BY SBSCRB_DE DESC, ENTRPRS_MBER_ID ASC
+        ORDER BY M.SBSCRB_DE DESC, M.ENTRPRS_MBER_ID ASC, B.BIZR_SEQ ASC
         LIMIT #{recordCountPerPage}
         OFFSET #{firstIndex}
-
     </select>
-
 
     <select id="selectEntrprsMberListTotCnt"
             parameterType="vat.home.card.service.VatCardPurchaseVO"
             resultType="int">
-
         SELECT COUNT(1)
-        FROM COMTNENTRPRSMBER
+        FROM COMTNENTRPRSMBER M
+        INNER JOIN COMTNENTRPRSBIZR B
+                ON M.ENTRPRS_MBER_ID = B.ENTRPRS_MBER_ID
+               AND B.USE_AT = 'Y'
         WHERE 1 = 1
-
         <if test="searchBusinessNo != null and searchBusinessNo != ''">
-            AND REPLACE(BIZRNO, '-', '')
-                LIKE CONCAT(
-                    '%',
-                    REPLACE(#{searchBusinessNo}, '-', ''),
-                    '%'
-                )
+            AND REPLACE(B.BIZRNO, '-', '')
+                LIKE CONCAT('%', REPLACE(#{searchBusinessNo}, '-', ''), '%')
         </if>
-
         <if test="searchBusinessName != null and searchBusinessName != ''">
-            AND CMPNY_NM LIKE CONCAT('%', #{searchBusinessName}, '%')
+            AND M.CMPNY_NM LIKE CONCAT('%', #{searchBusinessName}, '%')
         </if>
-
     </select>
 
-
-    <!--
-        실제 선택처리 시 서버 내부에서만 다시 조회하는 로그인 정보.
-        브라우저에서는 ENTRPRS_MBER_ID만 전달한다.
-    -->
+    <!-- BIZR_SEQ만 받아 서버에서 로그인 정보 + 사업자번호를 다시 조회 -->
     <select id="selectEntrprsMberLoginInfo"
-            parameterType="string"
+            parameterType="long"
             resultType="vat.home.card.service.VatCardPurchaseVO">
-
         SELECT
-              ESNTL_ID                 AS uniqId
-            , BIZRNO                   AS bizrno
-            , CMPNY_NM                 AS cmpnyNm
-            , ENTRPRS_MBER_ID          AS entrprsmberId
-            , APPLCNT_IHIDNUM          AS applcntIhidnum
-            , APPLCNT_IHIDNUM2         AS applcntIhidnum2
-            , HOMETAX_PASSWORD         AS hometaxPassword
-        FROM COMTNENTRPRSMBER
-        WHERE ENTRPRS_MBER_ID = #{value}
-
+              M.ESNTL_ID            AS uniqId
+            , B.BIZR_SEQ            AS bizrSeq
+            , B.BIZRNO              AS bizrno
+            , M.CMPNY_NM            AS cmpnyNm
+            , M.ENTRPRS_MBER_ID     AS entrprsmberId
+            , M.APPLCNT_IHIDNUM     AS applcntIhidnum
+            , M.APPLCNT_IHIDNUM2    AS applcntIhidnum2
+            , M.HOMETAX_PASSWORD    AS hometaxPassword
+        FROM COMTNENTRPRSMBER M
+        INNER JOIN COMTNENTRPRSBIZR B
+                ON M.ENTRPRS_MBER_ID = B.ENTRPRS_MBER_ID
+        WHERE B.BIZR_SEQ = #{value}
+          AND B.USE_AT = 'Y'
     </select>
 
 </mapper>

@@ -10,6 +10,9 @@ public class VatCardPurchaseVO extends VatCardPurchaseDefaultVO {
     /** 사용자고유ID */
     private String uniqId;
 
+    /** 사업자등록번호 테이블 PK */
+    private Long bizrSeq;
+
     /** 사업자등록번호 */
     private String bizrno;
 
@@ -25,76 +28,36 @@ public class VatCardPurchaseVO extends VatCardPurchaseDefaultVO {
     /** 신청자 주민등록번호 2번째 값 : APPLCNT_IHIDNUM2 */
     private String applcntIhidnum2;
 
-    /**
-     * 기업회원 비밀번호 : ENTRPRS_MBER_PASSWORD
-     * 목록 화면에서는 조회/전달하지 않고 선택처리 시 서버에서만 재조회한다.
-     */
+    /** 기업회원 비밀번호 : 화면에서는 사용하지 않음 */
     private String entrprsMberPassword;
 
-    /** 홈택스 로그인용 양방향 암호화 비밀번호 : HOMETAX_PASSWORD */
+    /** 홈택스 로그인용 양방향 암호화 비밀번호 */
     private String hometaxPassword;
 
-    public String getUniqId() {
-        return uniqId;
-    }
+    public String getUniqId() { return uniqId; }
+    public void setUniqId(String uniqId) { this.uniqId = uniqId; }
 
-    public void setUniqId(String uniqId) {
-        this.uniqId = uniqId;
-    }
+    public Long getBizrSeq() { return bizrSeq; }
+    public void setBizrSeq(Long bizrSeq) { this.bizrSeq = bizrSeq; }
 
-    public String getBizrno() {
-        return bizrno;
-    }
+    public String getBizrno() { return bizrno; }
+    public void setBizrno(String bizrno) { this.bizrno = bizrno; }
 
-    public void setBizrno(String bizrno) {
-        this.bizrno = bizrno;
-    }
+    public String getCmpnyNm() { return cmpnyNm; }
+    public void setCmpnyNm(String cmpnyNm) { this.cmpnyNm = cmpnyNm; }
 
-    public String getCmpnyNm() {
-        return cmpnyNm;
-    }
+    public String getEntrprsmberId() { return entrprsmberId; }
+    public void setEntrprsmberId(String entrprsmberId) { this.entrprsmberId = entrprsmberId; }
 
-    public void setCmpnyNm(String cmpnyNm) {
-        this.cmpnyNm = cmpnyNm;
-    }
+    public String getApplcntIhidnum() { return applcntIhidnum; }
+    public void setApplcntIhidnum(String applcntIhidnum) { this.applcntIhidnum = applcntIhidnum; }
 
-    public String getEntrprsmberId() {
-        return entrprsmberId;
-    }
+    public String getApplcntIhidnum2() { return applcntIhidnum2; }
+    public void setApplcntIhidnum2(String applcntIhidnum2) { this.applcntIhidnum2 = applcntIhidnum2; }
 
-    public void setEntrprsmberId(String entrprsmberId) {
-        this.entrprsmberId = entrprsmberId;
-    }
+    public String getEntrprsMberPassword() { return entrprsMberPassword; }
+    public void setEntrprsMberPassword(String entrprsMberPassword) { this.entrprsMberPassword = entrprsMberPassword; }
 
-    public String getApplcntIhidnum() {
-        return applcntIhidnum;
-    }
-
-    public void setApplcntIhidnum(String applcntIhidnum) {
-        this.applcntIhidnum = applcntIhidnum;
-    }
-
-    public String getApplcntIhidnum2() {
-        return applcntIhidnum2;
-    }
-
-    public void setApplcntIhidnum2(String applcntIhidnum2) {
-        this.applcntIhidnum2 = applcntIhidnum2;
-    }
-
-    public String getEntrprsMberPassword() {
-        return entrprsMberPassword;
-    }
-
-    public void setEntrprsMberPassword(String entrprsMberPassword) {
-        this.entrprsMberPassword = entrprsMberPassword;
-    }
-
-    public String getHometaxPassword() {
-        return hometaxPassword;
-    }
-
-    public void setHometaxPassword(String hometaxPassword) {
-        this.hometaxPassword = hometaxPassword;
-    }
+    public String getHometaxPassword() { return hometaxPassword; }
+    public void setHometaxPassword(String hometaxPassword) { this.hometaxPassword = hometaxPassword; }
 }

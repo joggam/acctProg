@@ -67,7 +67,12 @@
     </insert>
     
 
-    <!-- 기업회원 엑셀 대량등록 시작 전 전체 삭제 -->
+    <!-- 기업회원 엑셀 대량등록 시작 전 사업자번호 자식 테이블부터 삭제 -->
+    <delete id="deleteAllEntrprsBizrExcel_S">
+        DELETE FROM COMTNENTRPRSBIZR
+    </delete>
+
+    <!-- 기업회원 엑셀 대량등록 시작 전 기업회원 전체 삭제 -->
     <delete id="deleteAllEntrprsExcel_S">
         DELETE FROM COMTNENTRPRSMBER
     </delete>
@@ -79,7 +84,6 @@
             ESNTL_ID,
             ENTRPRS_MBER_ID,
             ENTRPRS_SE_CODE,
-            BIZRNO,
             JURIRNO,
             CMPNY_NM,
             CXFC,
@@ -111,7 +115,6 @@
             #{uniqId},
             #{entrprsmberId},
             #{entrprsSeCode},
-            #{bizrno},
             #{jurirno},
             #{cmpnyNm},
             #{cxfc},
@@ -139,6 +142,25 @@
             sysdate()
         )
     </insert>
+
+    <!-- 기업회원별 사업자등록번호 1:N 등록 -->
+    <insert id="insertEntrprsBizrExcel_S">
+        INSERT INTO COMTNENTRPRSBIZR
+        (
+            ENTRPRS_MBER_ID,
+            BIZRNO,
+            USE_AT,
+            REGIST_PNTTM
+        )
+        VALUES
+        (
+            #{entrprsmberId},
+            #{bizrno},
+            'Y',
+            sysdate()
+        )
+    </insert>
+
 
     <select id="selectEntrprsmberIdCnt" resultType="int">
         SELECT COUNT(1)

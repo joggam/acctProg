@@ -14,38 +14,22 @@ import vat.home.card.service.VatCardPurchaseVO;
 public class VatCardPurchaseDAO extends EgovAbstractMapper {
 
     @Resource(name = "egov.sqlSession")
-    public void setSqlSessionFactory(
-            SqlSessionFactory sqlSession) {
-
+    public void setSqlSessionFactory(SqlSessionFactory sqlSession) {
         super.setSqlSessionFactory(sqlSession);
     }
 
-    public List<VatCardPurchaseVO> selectEntrprsMberList(
-            VatCardPurchaseVO searchVO) {
-
-        return selectList(
-            "vatCardPurchaseDAO.selectEntrprsMberList",
-            searchVO
-        );
+    public List<VatCardPurchaseVO> selectEntrprsMberList(VatCardPurchaseVO searchVO) {
+        return selectList("vatCardPurchaseDAO.selectEntrprsMberList", searchVO);
     }
 
-    public int selectEntrprsMberListTotCnt(
-            VatCardPurchaseVO searchVO) {
-
+    public int selectEntrprsMberListTotCnt(VatCardPurchaseVO searchVO) {
         Integer result = selectOne(
-            "vatCardPurchaseDAO.selectEntrprsMberListTotCnt",
-            searchVO
-        );
-
+                "vatCardPurchaseDAO.selectEntrprsMberListTotCnt", searchVO);
         return result == null ? 0 : result.intValue();
     }
 
-    public VatCardPurchaseVO selectEntrprsMberLoginInfo(
-            String entrprsmberId) {
-
+    public VatCardPurchaseVO selectEntrprsMberLoginInfo(Long bizrSeq) {
         return selectOne(
-            "vatCardPurchaseDAO.selectEntrprsMberLoginInfo",
-            entrprsmberId
-        );
+                "vatCardPurchaseDAO.selectEntrprsMberLoginInfo", bizrSeq);
     }
 }

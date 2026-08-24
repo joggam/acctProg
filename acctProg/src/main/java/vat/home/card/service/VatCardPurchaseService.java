@@ -3,17 +3,16 @@ package vat.home.card.service;
 import java.io.File;
 import java.util.List;
 
-
 public interface VatCardPurchaseService {
 
     List<VatCardPurchaseVO> selectEntrprsMberList(VatCardPurchaseVO searchVO) throws Exception;
 
     int selectEntrprsMberListTotCnt(VatCardPurchaseVO searchVO) throws Exception;
 
-    VatCardPurchaseVO selectEntrprsMberLoginInfo(String entrprsmberId) throws Exception;
+    VatCardPurchaseVO selectEntrprsMberLoginInfo(Long bizrSeq) throws Exception;
 
-    File downloadHometaxExcel(String entrprsmberId, int year, int quarter) throws Exception;
+    File downloadHometaxExcel(Long bizrSeq, int year, int quarter) throws Exception;
 
     File downloadMergedHometaxExcel(
-            String[] entrprsmberIds, int year, int quarter) throws Exception;
+            String[] selectedBizrSeq, int year, int quarter) throws Exception;
 }

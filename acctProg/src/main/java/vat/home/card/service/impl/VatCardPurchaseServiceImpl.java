@@ -26,111 +26,35 @@ public class VatCardPurchaseServiceImpl extends EgovAbstractServiceImpl
     @Override
     public List<VatCardPurchaseVO> selectEntrprsMberList(
             VatCardPurchaseVO searchVO) throws Exception {
-
         return vatCardPurchaseDAO.selectEntrprsMberList(searchVO);
     }
 
     @Override
     public int selectEntrprsMberListTotCnt(
             VatCardPurchaseVO searchVO) throws Exception {
-
         return vatCardPurchaseDAO.selectEntrprsMberListTotCnt(searchVO);
     }
 
     @Override
     public VatCardPurchaseVO selectEntrprsMberLoginInfo(
-            String entrprsmberId) throws Exception {
-
-        return vatCardPurchaseDAO.selectEntrprsMberLoginInfo(entrprsmberId);
+            Long bizrSeq) throws Exception {
+        return vatCardPurchaseDAO.selectEntrprsMberLoginInfo(bizrSeq);
     }
 
     @Override
     public File downloadHometaxExcel(
-            String entrprsmberId,
+            Long bizrSeq,
             int year,
             int quarter) throws Exception {
 
-        VatCardPurchaseVO loginInfo =
-                vatCardPurchaseDAO.selectEntrprsMberLoginInfo(
-                        entrprsmberId
-                );
-
-        if (loginInfo == null) {
-            throw new RuntimeException(
-                    "기업회원 로그인 정보를 찾을 수 없습니다. ID="
-                    + entrprsmberId
-            );
-        }
-
-        String hometaxId = trim(loginInfo.getEntrprsmberId());
-        String businessNumber = onlyNumber(loginInfo.getBizrno());
-        String encryptedPassword = trim(loginInfo.getHometaxPassword());
-        String ihidnum1 = onlyNumber(loginInfo.getApplcntIhidnum());
-        String ihidnum2 = onlyNumber(loginInfo.getApplcntIhidnum2());
-
-        if (hometaxId.length() == 0) {
-            throw new RuntimeException("홈택스 아이디가 없습니다.");
-        }
-
-        if (businessNumber.length() != 10) {
-            throw new RuntimeException(
-                    "사업자등록번호가 올바르지 않습니다. ID="
-                    + entrprsmberId
-            );
-        }
-
-        if (encryptedPassword.length() == 0) {
-            throw new RuntimeException("홈택스 비밀번호가 없습니다.");
-        }
-
-        String hometaxPassword =
-                EgovComUtlController.decryptId(
-                        encryptedPassword
-                );
-
-        if (hometaxPassword == null
-                || hometaxPassword.trim().length() == 0) {
-            throw new RuntimeException("홈택스 비밀번호 복호화 결과가 없습니다.");
-        }
-
-        String juminFirst6;
-        String jumin7th;
-
-        /*
-         * 홈택스 2차 인증
-         * - APPLCNT_IHIDNUM  : 앞 6자리
-         * - APPLCNT_IHIDNUM2 : 7번째 숫자
-         *
-         * APPLCNT_IHIDNUM2가 있으면 반드시 우선 사용한다.
-         * APPLCNT_IHIDNUM2가 비어 있는 예전 데이터만
-         * APPLCNT_IHIDNUM의 7번째 숫자를 fallback으로 사용한다.
-         */
-        if (ihidnum1.length() < 6) {
-            throw new RuntimeException(
-                    "주민등록번호 앞 6자리가 올바르지 않습니다. ID="
-                    + entrprsmberId
-            );
-        }
-
-        juminFirst6 = ihidnum1.substring(0, 6);
-
-        if (ihidnum2.length() > 0) {
-            jumin7th = ihidnum2.substring(0, 1);
-        } else if (ihidnum1.length() >= 7) {
-            jumin7th = ihidnum1.substring(6, 7);
-        } else {
-            throw new RuntimeException(
-                    "주민등록번호 7번째 숫자가 없습니다. ID="
-                    + entrprsmberId
-            );
-        }
+        VatCardPurchaseVO loginInfo = getLoginInfo(bizrSeq);
 
         return HometaxMain.execute(
-                hometaxId,
-                hometaxPassword,
-                juminFirst6,
-                jumin7th,
-                businessNumber,
+                trim(loginInfo.getEntrprsmberId()),
+                decryptPassword(loginInfo),
+                getJuminFirst6(loginInfo),
+                getJumin7th(loginInfo),
+                getBusinessNumber(loginInfo),
                 year,
                 quarter
         );
@@ -138,120 +62,139 @@ public class VatCardPurchaseServiceImpl extends EgovAbstractServiceImpl
 
     @Override
     public File downloadMergedHometaxExcel(
-            String[] entrprsmberIds,
+            String[] selectedBizrSeq,
             int year,
             int quarter) throws Exception {
 
-        if (entrprsmberIds == null || entrprsmberIds.length == 0) {
+        if (selectedBizrSeq == null || selectedBizrSeq.length == 0) {
             throw new IllegalArgumentException(
-                    "분류내려받기 대상 기업회원이 없습니다."
+                    "분류내려받기 대상 사업자등록번호가 없습니다."
             );
         }
 
         List<HometaxMergeParameter> parameters =
                 new ArrayList<HometaxMergeParameter>();
 
-        for (String entrprsmberId : entrprsmberIds) {
-
-            if (entrprsmberId == null
-                    || entrprsmberId.trim().length() == 0) {
+        for (String value : selectedBizrSeq) {
+            if (value == null || value.trim().length() == 0) {
                 continue;
             }
 
-            VatCardPurchaseVO loginInfo =
-                    vatCardPurchaseDAO.selectEntrprsMberLoginInfo(
-                            entrprsmberId.trim()
-                    );
-
-            if (loginInfo == null) {
-                throw new RuntimeException(
-                        "기업회원 로그인 정보를 찾을 수 없습니다. ID="
-                        + entrprsmberId
+            Long bizrSeq;
+            try {
+                bizrSeq = Long.valueOf(value.trim());
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(
+                        "잘못된 사업자 선택값입니다. BIZR_SEQ=" + value
                 );
             }
 
-            String companyName = trim(loginInfo.getCmpnyNm());
-            String hometaxId = trim(loginInfo.getEntrprsmberId());
-            String businessNumber = onlyNumber(loginInfo.getBizrno());
-            String encryptedPassword = trim(loginInfo.getHometaxPassword());
-            String ihidnum1 = onlyNumber(loginInfo.getApplcntIhidnum());
-            String ihidnum2 = onlyNumber(loginInfo.getApplcntIhidnum2());
-
-            if (hometaxId.length() == 0) {
-                throw new RuntimeException(
-                        "홈택스 아이디가 없습니다. ID=" + entrprsmberId
-                );
-            }
-
-            if (businessNumber.length() != 10) {
-                throw new RuntimeException(
-                        "사업자등록번호가 올바르지 않습니다. ID="
-                        + entrprsmberId
-                );
-            }
-
-            if (encryptedPassword.length() == 0) {
-                throw new RuntimeException(
-                        "홈택스 비밀번호가 없습니다. ID=" + entrprsmberId
-                );
-            }
-
-            String hometaxPassword =
-                    EgovComUtlController.decryptId(
-                            encryptedPassword
-                    );
-
-            if (hometaxPassword == null
-                    || hometaxPassword.trim().length() == 0) {
-                throw new RuntimeException(
-                        "홈택스 비밀번호 복호화 결과가 없습니다. ID="
-                        + entrprsmberId
-                );
-            }
-
-            if (ihidnum1.length() < 6) {
-                throw new RuntimeException(
-                        "주민등록번호 앞 6자리가 올바르지 않습니다. ID="
-                        + entrprsmberId
-                );
-            }
-
-            String juminFirst6 = ihidnum1.substring(0, 6);
-            String jumin7th;
-
-            if (ihidnum2.length() > 0) {
-                jumin7th = ihidnum2.substring(0, 1);
-            } else if (ihidnum1.length() >= 7) {
-                jumin7th = ihidnum1.substring(6, 7);
-            } else {
-                throw new RuntimeException(
-                        "주민등록번호 7번째 숫자가 없습니다. ID="
-                        + entrprsmberId
-                );
-            }
+            VatCardPurchaseVO loginInfo = getLoginInfo(bizrSeq);
 
             parameters.add(
                     new HometaxMergeParameter(
-                            companyName,
-                            hometaxId,
-                            hometaxPassword,
-                            juminFirst6,
-                            jumin7th,
-                            businessNumber
+                            trim(loginInfo.getCmpnyNm()),
+                            trim(loginInfo.getEntrprsmberId()),
+                            decryptPassword(loginInfo),
+                            getJuminFirst6(loginInfo),
+                            getJumin7th(loginInfo),
+                            getBusinessNumber(loginInfo)
                     )
             );
         }
 
         if (parameters.isEmpty()) {
             throw new RuntimeException(
-                    "분류내려받기 가능한 기업회원 정보가 없습니다."
+                    "분류내려받기 가능한 사업자 정보가 없습니다."
             );
         }
 
-        return HometaxMain.executeMerged(
-                parameters,
-                year,
-                quarter
+        return HometaxMain.executeMerged(parameters, year, quarter);
+    }
+
+    private VatCardPurchaseVO getLoginInfo(Long bizrSeq) {
+        if (bizrSeq == null) {
+            throw new IllegalArgumentException("BIZR_SEQ가 없습니다.");
+        }
+
+        VatCardPurchaseVO loginInfo =
+                vatCardPurchaseDAO.selectEntrprsMberLoginInfo(bizrSeq);
+
+        if (loginInfo == null) {
+            throw new RuntimeException(
+                    "사업자 또는 기업회원 로그인 정보를 찾을 수 없습니다. BIZR_SEQ="
+                    + bizrSeq
+            );
+        }
+
+        if (trim(loginInfo.getEntrprsmberId()).length() == 0) {
+            throw new RuntimeException(
+                    "홈택스 아이디가 없습니다. BIZR_SEQ=" + bizrSeq
+            );
+        }
+
+        return loginInfo;
+    }
+
+    private String getBusinessNumber(VatCardPurchaseVO loginInfo) {
+        String businessNumber = onlyNumber(loginInfo.getBizrno());
+        if (businessNumber.length() != 10) {
+            throw new RuntimeException(
+                    "사업자등록번호가 올바르지 않습니다. ID="
+                    + trim(loginInfo.getEntrprsmberId())
+            );
+        }
+        return businessNumber;
+    }
+
+    private String decryptPassword(VatCardPurchaseVO loginInfo) {
+        String encryptedPassword = trim(loginInfo.getHometaxPassword());
+        if (encryptedPassword.length() == 0) {
+            throw new RuntimeException(
+                    "홈택스 비밀번호가 없습니다. ID="
+                    + trim(loginInfo.getEntrprsmberId())
+            );
+        }
+
+        String hometaxPassword =
+                EgovComUtlController.decryptId(encryptedPassword);
+
+        if (hometaxPassword == null
+                || hometaxPassword.trim().length() == 0) {
+            throw new RuntimeException(
+                    "홈택스 비밀번호 복호화 결과가 없습니다. ID="
+                    + trim(loginInfo.getEntrprsmberId())
+            );
+        }
+
+        return hometaxPassword.trim();
+    }
+
+    private String getJuminFirst6(VatCardPurchaseVO loginInfo) {
+        String ihidnum1 = onlyNumber(loginInfo.getApplcntIhidnum());
+        if (ihidnum1.length() < 6) {
+            throw new RuntimeException(
+                    "주민등록번호 앞 6자리가 올바르지 않습니다. ID="
+                    + trim(loginInfo.getEntrprsmberId())
+            );
+        }
+        return ihidnum1.substring(0, 6);
+    }
+
+    private String getJumin7th(VatCardPurchaseVO loginInfo) {
+        String ihidnum1 = onlyNumber(loginInfo.getApplcntIhidnum());
+        String ihidnum2 = onlyNumber(loginInfo.getApplcntIhidnum2());
+
+        if (ihidnum2.length() > 0) {
+            return ihidnum2.substring(0, 1);
+        }
+        if (ihidnum1.length() >= 7) {
+            return ihidnum1.substring(6, 7);
+        }
+
+        throw new RuntimeException(
+                "주민등록번호 7번째 숫자가 없습니다. ID="
+                + trim(loginInfo.getEntrprsmberId())
         );
     }
 
