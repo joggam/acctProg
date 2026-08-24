@@ -59,7 +59,8 @@ public class HometaxService {
 
     public File downloadExcel(
             int year,
-            int quarter) {
+            int quarter,
+            String selectedBusinessNumber) {
 
         validatePeriod(
                 year,
@@ -109,11 +110,13 @@ public class HometaxService {
             // 2. 상호명 / 사업자등록번호
             // =====================================================
 
+            String businessNumber =
+                    findBusinessNumber(
+                            selectedBusinessNumber
+                    );
+
             String businessName =
                     findBusinessName();
-
-            String businessNumber =
-                    findBusinessNumber();
 
 
             System.out.println(
@@ -523,49 +526,467 @@ public class HometaxService {
     // mf_txppWframe_bmanTxprNo
     // =============================================================
 
-    private String findBusinessNumber() {
+    private String findBusinessNumber(
+            String selectedBusinessNumber) {
 
-        WebElement element =
+        String normalizedSelected =
+                onlyNumber(
+                        selectedBusinessNumber
+                );
+
+        if (normalizedSelected.length() != 10) {
+
+            throw new RuntimeException(
+                    "선택한 기업의 사업자등록번호가 올바르지 않습니다. "
+                    + "사업자번호="
+                    + selectedBusinessNumber
+            );
+        }
+
+        String formattedBusinessNumber =
+                formatBusinessNumber(
+                        normalizedSelected
+                );
+// =========================================================
+        // 1. 단일 사업자
+        //
+        // mf_txppWframe_bmanTxprNo가 표시되어 있으면
+        // 기존 화면값을 그대로 사용한다.
+        // =========================================================
+
+        List<WebElement> numberElements =
+                driver.findElements(
+                        By.id(
+                                "mf_txppWframe_bmanTxprNo"
+                        )
+                );
+
+        for (WebElement element : numberElements) {
+
+            try {
+
+                if (!element.isDisplayed()) {
+                    continue;
+                }
+
+                String businessNumber =
+                        element.getText();
+
+                if (businessNumber == null
+                        || businessNumber
+                                .trim()
+                                .isEmpty()) {
+
+                    businessNumber =
+                            element.getAttribute(
+                                    "value"
+                            );
+                }
+
+                if (businessNumber != null
+                        && !businessNumber
+                                .trim()
+                                .isEmpty()) {
+
+                    System.out.println(
+                            "[BUSINESS] 화면 사업자번호 사용 = "
+                            + businessNumber
+                    );
+
+                    return cleanFileNameValue(
+                            businessNumber
+                    );
+                }
+
+            } catch (Exception ignored) {
+            }
+        }
+
+
+        // =========================================================
+        // 2. 여러 사업자
+        //
+        // mf_txppWframe_bmanTxprNo가 없거나 표시되지 않으면
+        // mf_txppWframe_bmanSelectBox에서 찾는다.
+        //
+        // 1차: 일반 HTML <select>
+        // 2차: WebSquare 콤보 펼친 뒤 화면 항목 검색
+        // =========================================================
+
+        WebElement comboElement =
                 wait.until(
                         ExpectedConditions
-                                .visibilityOfElementLocated(
+                                .presenceOfElementLocated(
                                         By.id(
-                                                "mf_txppWframe_bmanTxprNo"
+                                                "mf_txppWframe_bmanSelectBox"
                                         )
                                 )
                 );
 
 
-        String businessNumber =
-                element.getText();
+        boolean selected = false;
+        String selectedText = "";
 
 
-        // getText()가 비어 있을 경우 value 속성 확인
-        if (businessNumber == null
-                || businessNumber
-                        .trim()
-                        .isEmpty()) {
+        // =========================================================
+        // 2-1. 일반 HTML SELECT 처리
+        // =========================================================
 
-            businessNumber =
-                    element.getAttribute(
-                            "value"
-                    );
+        try {
+
+            if ("select".equalsIgnoreCase(
+                    comboElement.getTagName())) {
+
+                Select select =
+                        new Select(
+                                comboElement
+                        );
+
+                List<WebElement> options =
+                        select.getOptions();
+
+
+                for (int i = 0;
+                     i < options.size();
+                     i++) {
+
+                    WebElement option =
+                            options.get(i);
+
+                    String optionText =
+                            option.getText();
+
+                    String optionValue =
+                            option.getAttribute(
+                                    "value"
+                            );
+
+                    String normalizedText =
+                            onlyNumber(
+                                    optionText
+                            );
+
+                    String normalizedValue =
+                            onlyNumber(
+                                    optionValue
+                            );
+if (isSameBusinessNumber(
+                            normalizedSelected,
+                            formattedBusinessNumber,
+                            optionText,
+                            optionValue)) {
+
+                        try {
+
+                            if (optionValue != null
+                                    && !optionValue
+                                            .trim()
+                                            .isEmpty()) {
+
+                                select.selectByValue(
+                                        optionValue
+                                );
+
+                            } else {
+
+                                select.selectByIndex(
+                                        i
+                                );
+                            }
+
+                        } catch (Exception e) {
+
+                            select.selectByIndex(
+                                    i
+                            );
+                        }
+
+                        selected = true;
+                        selectedText =
+                                optionText;
+
+                        System.out.println(
+                                "[BUSINESS] 사업자 선택 완료 = "
+                                + optionText
+                        );
+
+                        break;
+                    }
+                }
+
+
+                if (selected) {
+
+                    sleep(700);
+
+                    try {
+
+                        WebElement selectedOption =
+                                select.getFirstSelectedOption();
+
+                        String result =
+                                selectedOption.getText();
+
+                        if (result == null
+                                || result
+                                        .trim()
+                                        .isEmpty()) {
+
+                            result =
+                                    selectedOption
+                                            .getAttribute(
+                                                    "value"
+                                            );
+                        }
+
+                        if (result != null
+                                && !result
+                                        .trim()
+                                        .isEmpty()) {
+
+                            selectedText =
+                                    result;
+                        }
+
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+}
+
+
+        // =========================================================
+        // 2-2. WebSquare SELECTBOX 처리
+        //
+        // 일반 SELECT에서 선택하지 못했을 경우
+        // 콤보를 클릭하고 화면에 나타난 항목 중
+        // 사업자번호가 일치하는 요소를 찾아 클릭한다.
+        // =========================================================
+
+        if (!selected) {
+
+            try {
+
+                scrollTo(
+                        comboElement
+                );
+
+                comboElement.click();
+
+                sleep(500);
+
+
+                List<WebElement> candidates =
+                        driver.findElements(
+                                By.xpath(
+                                        "//*["
+                                        + "self::a "
+                                        + "or self::span "
+                                        + "or self::div "
+                                        + "or self::li "
+                                        + "or self::option"
+                                        + "]"
+                                )
+                        );
+
+
+                for (WebElement candidate
+                        : candidates) {
+
+                    try {
+
+                        if (!candidate.isDisplayed()) {
+                            continue;
+                        }
+
+                        String candidateText =
+                                candidate.getText();
+
+                        String candidateValue =
+                                candidate.getAttribute(
+                                        "value"
+                                );
+
+                        String normalizedText =
+                                onlyNumber(
+                                        candidateText
+                                );
+
+                        String normalizedValue =
+                                onlyNumber(
+                                        candidateValue
+                                );
+
+
+                        /*
+                         * 사업자번호 형태가 포함된 후보만 로그에 출력한다.
+                         * 전체 DOM을 전부 출력하면 로그가 너무 커지므로
+                         * 10자리 숫자로 정규화되는 값 위주로 출력한다.
+                         */
+                        if (normalizedText.length() == 10
+                                || normalizedValue.length() == 10
+                                || (candidateText != null
+                                    && candidateText.contains("-"))) {
+}
+
+
+                        if (!isSameBusinessNumber(
+                                normalizedSelected,
+                                formattedBusinessNumber,
+                                candidateText,
+                                candidateValue)) {
+
+                            continue;
+                        }
+
+
+                        WebElement clickable =
+                                findClickableParent(
+                                        candidate
+                                );
+
+                        scrollTo(
+                                clickable
+                        );
+
+                        clickable.click();
+
+                        selected = true;
+                        selectedText =
+                                candidateText;
+
+                        System.out.println(
+                                "[BUSINESS] 사업자 선택 완료 = "
+                                + candidateText
+                        );
+
+                        break;
+
+                    } catch (Exception ignored) {
+                    }
+                }
+
+            } catch (Exception e) {
+}
         }
 
 
-        if (businessNumber == null
-                || businessNumber
-                        .trim()
-                        .isEmpty()) {
+        if (!selected) {
 
             throw new RuntimeException(
-                    "사업자등록번호를 가져오지 못했습니다."
+                    "홈택스 사업자번호 콤보에서 "
+                    + "선택한 사업자번호를 찾지 못했습니다. "
+                    + "원본="
+                    + selectedBusinessNumber
+                    + ", 하이픈형="
+                    + formattedBusinessNumber
             );
         }
 
 
-        return cleanFileNameValue(
-                businessNumber
+        /*
+         * WebSquare 선택 변경 이벤트 처리 대기
+         */
+        sleep(1000);
+
+
+        String result =
+                selectedText;
+
+        if (result == null
+                || result
+                        .trim()
+                        .isEmpty()) {
+
+            result =
+                    formattedBusinessNumber;
+        }
+return cleanFileNameValue(
+                result
+        );
+    }
+
+
+    private boolean isSameBusinessNumber(
+            String normalizedSelected,
+            String formattedBusinessNumber,
+            String text,
+            String value) {
+
+        String normalizedText =
+                onlyNumber(
+                        text
+                );
+
+        String normalizedValue =
+                onlyNumber(
+                        value
+                );
+
+        String trimmedText =
+                text == null
+                ? ""
+                : text.trim();
+
+        String trimmedValue =
+                value == null
+                ? ""
+                : value.trim();
+
+
+        return normalizedSelected.equals(
+                    normalizedText)
+                || normalizedSelected.equals(
+                    normalizedValue)
+                || formattedBusinessNumber.equals(
+                    trimmedText)
+                || formattedBusinessNumber.equals(
+                    trimmedValue);
+    }
+
+
+    private String formatBusinessNumber(
+            String businessNumber) {
+
+        String onlyNumber =
+                onlyNumber(
+                        businessNumber
+                );
+
+        if (onlyNumber.length() != 10) {
+
+            return businessNumber == null
+                    ? ""
+                    : businessNumber.trim();
+        }
+
+
+        return onlyNumber.substring(
+                    0,
+                    3)
+                + "-"
+                + onlyNumber.substring(
+                    3,
+                    5)
+                + "-"
+                + onlyNumber.substring(
+                    5);
+    }
+
+
+    private String onlyNumber(
+            String value) {
+
+        if (value == null) {
+
+            return "";
+        }
+
+        return value.replaceAll(
+                "[^0-9]",
+                ""
         );
     }
 

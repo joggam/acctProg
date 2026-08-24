@@ -520,6 +520,12 @@ public class ExcelTitleCopy {
             );
 
 
+            customTitleMapping.put(
+                    "비과세",
+                    "봉사료"
+            );
+
+
             // =================================================
             // SOURCE COLUMN → TARGET COLUMN
             // =================================================

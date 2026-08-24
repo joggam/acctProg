@@ -72,6 +72,8 @@ public class EntrprsManageVO  extends UserDefaultVO{
 	 * 기업 회원 비밀번호
 	 */
 	private String entrprsMberPassword;
+	/** 홈택스 로그인용 양방향 암호화 비밀번호 */
+	private String hometaxPassword;
 	/**
 	 * 기업 회원 비밀번호 정답
 	 */
@@ -316,6 +318,14 @@ public class EntrprsManageVO  extends UserDefaultVO{
 	 */
 	public void setEntrprsMberPassword(String entrprsMberPassword) {
 		this.entrprsMberPassword = entrprsMberPassword;
+	}
+
+	public String getHometaxPassword() {
+		return hometaxPassword;
+	}
+
+	public void setHometaxPassword(String hometaxPassword) {
+		this.hometaxPassword = hometaxPassword;
 	}
 	/**
 	 * entrprsMberPasswordCnsr attribute 값을  리턴한다.

@@ -8,6 +8,7 @@ import org.egovframe.rte.fdl.cmmn.EgovAbstractServiceImpl;
 import org.egovframe.rte.fdl.idgnr.EgovIdGnrService;
 import org.springframework.stereotype.Service;
 
+import egovframework.com.cmm.web.EgovComUtlController;
 import egovframework.com.uss.umt.service.EgovEntrprsManageService;
 import egovframework.com.uss.umt.service.EntrprsManageVO;
 import egovframework.com.uss.umt.service.StplatVO;
@@ -194,8 +195,16 @@ public class EgovEntrprsManageServiceImpl extends EgovAbstractServiceImpl implem
         String uniqId = idgenService.getNextStringId();
         entrprsManageVO.setUniqId(uniqId);
 
+        // 엑셀에서 받은 비밀번호 원문
+        String rawPassword = entrprsManageVO.getEntrprsMberPassword();
+
+        // 홈택스 로그인용: 복호화 가능한 방식으로 별도 저장
+        String hometaxPassword = EgovComUtlController.encryptId(rawPassword);
+        entrprsManageVO.setHometaxPassword(hometaxPassword);
+
+        // 기존 기업회원 로그인용: 기존 단방향 암호화 로직 유지
         String pass = EgovFileScrty.encryptPassword(
-                entrprsManageVO.getEntrprsMberPassword(),
+                rawPassword,
                 EgovStringUtil.isNullToString(entrprsManageVO.getEntrprsmberId()));
         entrprsManageVO.setEntrprsMberPassword(pass);
 

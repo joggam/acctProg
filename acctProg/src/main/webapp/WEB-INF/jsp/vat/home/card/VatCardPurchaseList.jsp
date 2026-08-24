@@ -6,6 +6,7 @@
 %>
 <%@ page language="java" contentType="text/html; charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="ui" uri="http://egovframework.gov/ctl/ui"%>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
@@ -144,12 +145,12 @@ function fn_vat_checkRow() {
 }
 
 /**
- * 선택 기업회원 처리.
+ * 선택 기업회원 홈택스 자료 내려받기.
  *
  * 브라우저에서는 ENTRPRS_MBER_ID만 서버로 보낸다.
  * 비밀번호는 hidden input으로 생성하지 않는다.
  */
-function fn_vat_processSelected() {
+function fn_vat_downloadSelected() {
 
     var checked =
         document.querySelectorAll(
@@ -157,7 +158,7 @@ function fn_vat_processSelected() {
         );
 
     if (checked.length === 0) {
-        alert("처리할 기업회원을 선택해 주세요.");
+        alert("내려받을 기업회원을 선택해 주세요.");
         return;
     }
 
@@ -165,7 +166,7 @@ function fn_vat_processSelected() {
         document.vatCardPurchaseForm;
 
     form.action =
-        "<c:url value='/vat/home/card/processSelectedEntrprsMber.do'/>";
+        "<c:url value='/vat/home/card/downloadSelectedEntrprsMber.do'/>";
 
     form.submit();
 }
@@ -388,8 +389,8 @@ function fn_vat_excelDownload() {
         <div>
             <input type="button"
                    class="vat_btn vat_btn_download"
-                   value="선택처리"
-                   onclick="fn_vat_processSelected();">
+                   value="내려받기"
+                   onclick="fn_vat_downloadSelected();">
         </div>
 
     </div>
@@ -416,9 +417,9 @@ function fn_vat_excelDownload() {
                            title="전체 선택"
                            onclick="fn_vat_checkAll(this);">
                 </th>
+                <th scope="col">사업자등록번호</th>
                 <th scope="col">상호명</th>
                 <th scope="col">아이디</th>
-                <th scope="col">사업자등록번호</th>
                 <th scope="col">
                     신청자 주민등록번호 2번째 값
                 </th>
@@ -456,6 +457,9 @@ function fn_vat_excelDownload() {
                                onclick="fn_vat_checkRow();">
                     </td>
 
+                    <td>
+                        <c:out value="${resultInfo.bizrno}" />
+                    </td>
 
                     <td class="vat_align_left">
                         <c:out value="${resultInfo.cmpnyNm}" />
@@ -465,9 +469,6 @@ function fn_vat_excelDownload() {
                         <c:out value="${resultInfo.entrprsmberId}" />
                     </td>
 
-                    <td>
-                        <c:out value="${resultInfo.bizrno}" />
-                    </td>
                     <td>
                         <c:out value="${resultInfo.applcntIhidnum2}" />
                     </td>
@@ -484,58 +485,18 @@ function fn_vat_excelDownload() {
 
     <div class="vat_paging">
 
-    <div class="vat_page_list">
+        <div class="pagination">
+            <ui:pagination
+                paginationInfo="${paginationInfo}"
+                type="image"
+                jsFunction="fn_vat_selectPage" />
+        </div>
 
-        <!-- 이전 -->
-        <c:if test="${searchVO.pageIndex > 1}">
-            <a href="javascript:void(0);"
-               class="vat_page_move"
-               onclick="fn_vat_selectPage(${searchVO.pageIndex - 1});">
-                이전
-            </a>
-        </c:if>
-
-        <!-- 페이지 번호 -->
-        <c:forEach var="pageNo"
-                   begin="1"
-                   end="${totalPageCount}">
-
-            <c:choose>
-
-                <c:when test="${pageNo == searchVO.pageIndex}">
-                    <strong class="vat_page_current">
-                        <c:out value="${pageNo}" />
-                    </strong>
-                </c:when>
-
-                <c:otherwise>
-                    <a href="javascript:void(0);"
-                       class="vat_page_number"
-                       onclick="fn_vat_selectPage(${pageNo});">
-                        <c:out value="${pageNo}" />
-                    </a>
-                </c:otherwise>
-
-            </c:choose>
-
-        </c:forEach>
-
-        <!-- 다음 -->
-        <c:if test="${searchVO.pageIndex < totalPageCount}">
-            <a href="javascript:void(0);"
-               class="vat_page_move"
-               onclick="fn_vat_selectPage(${searchVO.pageIndex + 1});">
-                다음
-            </a>
-        </c:if>
+        <span class="vat_page_count">
+            총 <strong><c:out value="${totalCount}" /></strong>건
+        </span>
 
     </div>
-
-    <span class="vat_page_count">
-        총 <strong><c:out value="${totalCount}" /></strong>건
-    </span>
-
-</div>
 
 </div>
 

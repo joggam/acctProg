@@ -19,6 +19,9 @@ public class VatCardPurchaseVO extends VatCardPurchaseDefaultVO {
     /** 기업회원 아이디 */
     private String entrprsmberId;
 
+    /** 신청자 주민등록번호 앞쪽 값 : APPLCNT_IHIDNUM */
+    private String applcntIhidnum;
+
     /** 신청자 주민등록번호 2번째 값 : APPLCNT_IHIDNUM2 */
     private String applcntIhidnum2;
 
@@ -27,6 +30,9 @@ public class VatCardPurchaseVO extends VatCardPurchaseDefaultVO {
      * 목록 화면에서는 조회/전달하지 않고 선택처리 시 서버에서만 재조회한다.
      */
     private String entrprsMberPassword;
+
+    /** 홈택스 로그인용 양방향 암호화 비밀번호 : HOMETAX_PASSWORD */
+    private String hometaxPassword;
 
     public String getUniqId() {
         return uniqId;
@@ -60,6 +66,14 @@ public class VatCardPurchaseVO extends VatCardPurchaseDefaultVO {
         this.entrprsmberId = entrprsmberId;
     }
 
+    public String getApplcntIhidnum() {
+        return applcntIhidnum;
+    }
+
+    public void setApplcntIhidnum(String applcntIhidnum) {
+        this.applcntIhidnum = applcntIhidnum;
+    }
+
     public String getApplcntIhidnum2() {
         return applcntIhidnum2;
     }
@@ -74,5 +88,13 @@ public class VatCardPurchaseVO extends VatCardPurchaseDefaultVO {
 
     public void setEntrprsMberPassword(String entrprsMberPassword) {
         this.entrprsMberPassword = entrprsMberPassword;
+    }
+
+    public String getHometaxPassword() {
+        return hometaxPassword;
+    }
+
+    public void setHometaxPassword(String hometaxPassword) {
+        this.hometaxPassword = hometaxPassword;
     }
 }

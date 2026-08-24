@@ -1,5 +1,6 @@
 package vat.home.card.web;
 
+import java.io.File;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,145 +28,193 @@ public class VatCardPurchaseController {
     private VatCardPurchaseService vatCardPurchaseService;
 
     @IncludedInfo(
-        name = "사업용신용카드",
-        listUrl = "/vat/home/card/selectVatCardPurchaseList.do",
-        order = 11,
-        gid = 1
+            name = "사업용신용카드",
+            listUrl = "/vat/home/card/selectVatCardPurchaseList.do",
+            order = 11,
+            gid = 1
     )
     @RequestMapping("/vat/home/card/selectVatCardPurchaseList.do")
     public String selectVatCardPurchaseList(
             @ModelAttribute("searchVO") VatCardPurchaseVO searchVO,
             ModelMap model) throws Exception {
 
-        int currentYear = LocalDate.now().getYear();
+        setDefaultSearchCondition(searchVO);
 
-        if (searchVO.getSearchYear() == null
-                || "".equals(searchVO.getSearchYear())) {
-            searchVO.setSearchYear(
-                String.valueOf(currentYear)
-            );
-        }
-
-        List<Integer> yearList =
-            new ArrayList<Integer>();
-
-        for (int year = currentYear;
-             year >= currentYear - 5;
-             year--) {
-
-            yearList.add(year);
-        }
-
-        PaginationInfo paginationInfo =
-            new PaginationInfo();
-
-        paginationInfo.setCurrentPageNo(
-            searchVO.getPageIndex()
-        );
-        paginationInfo.setRecordCountPerPage(
-            searchVO.getPageUnit()
-        );
-        paginationInfo.setPageSize(
-            searchVO.getPageSize()
-        );
+        PaginationInfo paginationInfo = new PaginationInfo();
+        paginationInfo.setCurrentPageNo(searchVO.getPageIndex());
+        paginationInfo.setRecordCountPerPage(searchVO.getPageUnit());
+        paginationInfo.setPageSize(searchVO.getPageSize());
 
         searchVO.setFirstIndex(
-            paginationInfo.getFirstRecordIndex()
+                paginationInfo.getFirstRecordIndex()
         );
         searchVO.setLastIndex(
-            paginationInfo.getLastRecordIndex()
+                paginationInfo.getLastRecordIndex()
         );
         searchVO.setRecordCountPerPage(
-            paginationInfo.getRecordCountPerPage()
+                paginationInfo.getRecordCountPerPage()
         );
 
         List<VatCardPurchaseVO> resultList =
-            vatCardPurchaseService
-                .selectEntrprsMberList(searchVO);
+                vatCardPurchaseService.selectEntrprsMberList(
+                        searchVO
+                );
 
         int totalCount =
-            vatCardPurchaseService
-                .selectEntrprsMberListTotCnt(searchVO);
+                vatCardPurchaseService.selectEntrprsMberListTotCnt(
+                        searchVO
+                );
 
         paginationInfo.setTotalRecordCount(totalCount);
 
-        model.addAttribute(
-            "yearList",
-            yearList
-        );
-        model.addAttribute(
-            "resultList",
-            resultList
-        );
-        model.addAttribute(
-            "totalCount",
-            totalCount
-        );
-        model.addAttribute(
-            "paginationInfo",
-            paginationInfo
-        );
-        model.addAttribute(
-            "totalPageCount",
-            paginationInfo.getTotalPageCount()
-        );
+        model.addAttribute("yearList", createYearList());
+        model.addAttribute("resultList", resultList);
+        model.addAttribute("totalCount", totalCount);
+        model.addAttribute("paginationInfo", paginationInfo);
 
         return "vat/home/card/VatCardPurchaseList";
     }
 
-
     /**
-     * 선택된 기업회원 처리 예시.
-     *
-     * 화면에서는 기업회원 ID만 전달한다.
-     * 비밀번호 등 인증정보는 반드시 서버에서 다시 조회한다.
-     *
-     * 실제 홈택스 자동화 호출은 다음 단계에서 이 메서드 내부에 연결한다.
+     * 체크된 기업회원의 홈택스 자료 내려받기/가공 처리.
+     * 화면에서는 selectedEntrprsMber 값으로 ENTRPRS_MBER_ID만 전달한다.
      */
-    @RequestMapping("/vat/home/card/processSelectedEntrprsMber.do")
-    public String processSelectedEntrprsMber(
-            @RequestParam(
-                value = "selectedEntrprsMber",
-                required = false
-            )
+    @RequestMapping("/vat/home/card/downloadSelectedEntrprsMber.do")
+    public String downloadSelectedEntrprsMber(
+            @RequestParam(value = "selectedEntrprsMber", required = false)
             String[] selectedEntrprsMber,
-            @ModelAttribute("searchVO")
-            VatCardPurchaseVO searchVO,
+            @ModelAttribute("searchVO") VatCardPurchaseVO searchVO,
             ModelMap model) throws Exception {
 
-        if (selectedEntrprsMber != null) {
+        setDefaultSearchCondition(searchVO);
 
-            for (String entrprsmberId
-                    : selectedEntrprsMber) {
+        if (selectedEntrprsMber == null
+                || selectedEntrprsMber.length == 0) {
 
-                /*
-                 * 핵심:
-                 * 비밀번호를 request parameter로 받지 않는다.
-                 * 선택된 ID로 DB에서 서버가 다시 조회한다.
-                 */
-                VatCardPurchaseVO loginInfo =
-                    vatCardPurchaseService
-                        .selectEntrprsMberLoginInfo(
-                            entrprsmberId
+            model.addAttribute(
+                    "resultMsg",
+                    "내려받을 기업회원을 선택해 주세요."
+            );
+
+            return selectVatCardPurchaseList(searchVO, model);
+        }
+
+        if (!"QUARTER".equals(searchVO.getSearchPeriodType())) {
+            model.addAttribute(
+                    "resultMsg",
+                    "현재 홈택스 자동 내려받기는 분기별 조회만 지원합니다."
+            );
+
+            return selectVatCardPurchaseList(searchVO, model);
+        }
+
+        int year = Integer.parseInt(searchVO.getSearchYear());
+        int quarter = Integer.parseInt(searchVO.getSearchQuarter());
+
+        int successCount = 0;
+        List<String> failMessages = new ArrayList<String>();
+        List<String> resultFiles = new ArrayList<String>();
+
+        for (String entrprsmberId : selectedEntrprsMber) {
+
+            if (entrprsmberId == null
+                    || entrprsmberId.trim().length() == 0) {
+                continue;
+            }
+
+            try {
+                File resultFile =
+                        vatCardPurchaseService.downloadHometaxExcel(
+                                entrprsmberId.trim(),
+                                year,
+                                quarter
                         );
 
-                if (loginInfo == null) {
-                    continue;
+                successCount++;
+
+                if (resultFile != null) {
+                    resultFiles.add(
+                            resultFile.getAbsolutePath()
+                    );
                 }
 
-                /*
-                 * 여기에서만 서버 내부 값 사용.
-                 *
-                 * loginInfo.getEntrprsmberId()
-                 * loginInfo.getEntrprsMberPassword()
-                 * loginInfo.getApplcntIhidnum2()
-                 *
-                 * TODO:
-                 * 홈택스 로그인/엑셀 다운로드 로직 연결.
-                 */
+            } catch (Exception e) {
+
+                String message = e.getMessage();
+
+                if (message == null
+                        || message.trim().length() == 0) {
+                    message = e.getClass().getSimpleName();
+                }
+
+                failMessages.add(
+                        entrprsmberId
+                        + " : "
+                        + message
+                );
             }
         }
 
-        return "redirect:/vat/home/card/selectVatCardPurchaseList.do";
+        model.addAttribute("downloadSuccessCount", successCount);
+        model.addAttribute("downloadFailCount", failMessages.size());
+        model.addAttribute("downloadFailMessages", failMessages);
+        model.addAttribute("downloadResultFiles", resultFiles);
+
+        if (failMessages.isEmpty()) {
+            model.addAttribute(
+                    "resultMsg",
+                    "선택한 "
+                    + successCount
+                    + "개 기업의 홈택스 자료 내려받기가 완료되었습니다."
+            );
+        } else {
+            model.addAttribute(
+                    "resultMsg",
+                    "홈택스 자료 내려받기 완료: 성공 "
+                    + successCount
+                    + "건, 실패 "
+                    + failMessages.size()
+                    + "건"
+            );
+        }
+
+        return selectVatCardPurchaseList(searchVO, model);
+    }
+
+    private void setDefaultSearchCondition(
+            VatCardPurchaseVO searchVO) {
+
+        int currentYear = LocalDate.now().getYear();
+
+        if (searchVO.getSearchYear() == null
+                || searchVO.getSearchYear().trim().length() == 0) {
+            searchVO.setSearchYear(
+                    String.valueOf(currentYear)
+            );
+        }
+
+        if (searchVO.getSearchQuarter() == null
+                || searchVO.getSearchQuarter().trim().length() == 0) {
+            searchVO.setSearchQuarter("1");
+        }
+
+        if (searchVO.getSearchPeriodType() == null
+                || searchVO.getSearchPeriodType().trim().length() == 0) {
+            searchVO.setSearchPeriodType("QUARTER");
+        }
+    }
+
+    private List<Integer> createYearList() {
+
+        int currentYear = LocalDate.now().getYear();
+        List<Integer> yearList = new ArrayList<Integer>();
+
+        for (int year = currentYear;
+             year >= currentYear - 5;
+             year--) {
+            yearList.add(year);
+        }
+
+        return yearList;
     }
 }

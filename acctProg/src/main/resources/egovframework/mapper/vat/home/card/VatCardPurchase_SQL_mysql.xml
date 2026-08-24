@@ -9,7 +9,7 @@
 
         [중요]
         - 신청자 주민등록번호 2번째 값 : APPLCNT_IHIDNUM2
-        - ENTRPRS_MBER_PASSWORD : 목록에서 조회하지 않음
+        - HOMETAX_PASSWORD : 목록에서 조회하지 않음
           (브라우저/JSP로 전달하지 않음)
     -->
     <select id="selectEntrprsMberList"
@@ -82,8 +82,9 @@
             , BIZRNO                   AS bizrno
             , CMPNY_NM                 AS cmpnyNm
             , ENTRPRS_MBER_ID          AS entrprsmberId
+            , APPLCNT_IHIDNUM          AS applcntIhidnum
             , APPLCNT_IHIDNUM2         AS applcntIhidnum2
-            , ENTRPRS_MBER_PASSWORD    AS entrprsMberPassword
+            , HOMETAX_PASSWORD         AS hometaxPassword
         FROM COMTNENTRPRSMBER
         WHERE ENTRPRS_MBER_ID = #{value}
 
