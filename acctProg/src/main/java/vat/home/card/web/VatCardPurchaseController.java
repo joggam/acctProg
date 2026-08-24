@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import egovframework.com.cmm.annotation.IncludedInfo;
+
 import vat.home.card.service.VatCardPurchaseService;
 import vat.home.card.service.VatCardPurchaseVO;
 
@@ -40,10 +41,38 @@ public class VatCardPurchaseController {
 
         setDefaultSearchCondition(searchVO);
 
+        // 페이지당 조회 건수는 화면에서 10/30/50/100/200/ALL(0)만 허용한다.
+        int requestedPageUnit = searchVO.getPageUnit();
+        if (requestedPageUnit != 0
+                && requestedPageUnit != 10
+                && requestedPageUnit != 30
+                && requestedPageUnit != 50
+                && requestedPageUnit != 100
+                && requestedPageUnit != 200) {
+            requestedPageUnit = 10;
+            searchVO.setPageUnit(10);
+        }
+
+        // ALL 처리를 위해 전체 건수를 먼저 구한다.
+        int totalCount =
+                vatCardPurchaseService.selectEntrprsMberListTotCnt(
+                        searchVO
+                );
+
+        int recordCountPerPage;
+        if (requestedPageUnit == 0) {
+            // pageUnit=0은 화면에서 ALL을 의미한다.
+            recordCountPerPage = totalCount > 0 ? totalCount : 1;
+            searchVO.setPageIndex(1);
+        } else {
+            recordCountPerPage = requestedPageUnit;
+        }
+
         PaginationInfo paginationInfo = new PaginationInfo();
         paginationInfo.setCurrentPageNo(searchVO.getPageIndex());
-        paginationInfo.setRecordCountPerPage(searchVO.getPageUnit());
+        paginationInfo.setRecordCountPerPage(recordCountPerPage);
         paginationInfo.setPageSize(searchVO.getPageSize());
+        paginationInfo.setTotalRecordCount(totalCount);
 
         searchVO.setFirstIndex(
                 paginationInfo.getFirstRecordIndex()
@@ -59,13 +88,6 @@ public class VatCardPurchaseController {
                 vatCardPurchaseService.selectEntrprsMberList(
                         searchVO
                 );
-
-        int totalCount =
-                vatCardPurchaseService.selectEntrprsMberListTotCnt(
-                        searchVO
-                );
-
-        paginationInfo.setTotalRecordCount(totalCount);
 
         model.addAttribute("yearList", createYearList());
         model.addAttribute("resultList", resultList);
@@ -175,6 +197,80 @@ public class VatCardPurchaseController {
                     + "건, 실패 "
                     + failMessages.size()
                     + "건"
+            );
+        }
+
+        return selectVatCardPurchaseList(searchVO, model);
+    }
+
+    /**
+     * 선택된 기업들의 홈택스 자료를 최종 XLS 한 파일로 합쳐 내려받는다.
+     * ExcelTitleCopy는 사용하지 않는다.
+     */
+    @RequestMapping("/vat/home/card/downloadMergedEntrprsMber.do")
+    public String downloadMergedEntrprsMber(
+            @RequestParam(value = "selectedEntrprsMber", required = false)
+            String[] selectedEntrprsMber,
+            @ModelAttribute("searchVO") VatCardPurchaseVO searchVO,
+            ModelMap model) throws Exception {
+
+        setDefaultSearchCondition(searchVO);
+
+        if (selectedEntrprsMber == null
+                || selectedEntrprsMber.length == 0) {
+
+            model.addAttribute(
+                    "resultMsg",
+                    "분류내려받기 할 기업회원을 선택해 주세요."
+            );
+
+            return selectVatCardPurchaseList(searchVO, model);
+        }
+
+        if (!"QUARTER".equals(searchVO.getSearchPeriodType())) {
+            model.addAttribute(
+                    "resultMsg",
+                    "현재 분류내려받기는 분기별 조회만 지원합니다."
+            );
+
+            return selectVatCardPurchaseList(searchVO, model);
+        }
+
+        int year = Integer.parseInt(searchVO.getSearchYear());
+        int quarter = Integer.parseInt(searchVO.getSearchQuarter());
+
+        try {
+            File resultFile =
+                    vatCardPurchaseService.downloadMergedHometaxExcel(
+                            selectedEntrprsMber,
+                            year,
+                            quarter
+                    );
+
+            List<String> resultFiles = new ArrayList<String>();
+            if (resultFile != null) {
+                resultFiles.add(resultFile.getAbsolutePath());
+            }
+            model.addAttribute(
+                    "downloadResultFiles",
+                    resultFiles
+            );
+
+            model.addAttribute(
+                    "resultMsg",
+                    "선택한 기업 자료를 한 파일로 분류내려받기 완료했습니다."
+            );
+
+        } catch (Exception e) {
+            String message = e.getMessage();
+
+            if (message == null || message.trim().length() == 0) {
+                message = e.getClass().getSimpleName();
+            }
+
+            model.addAttribute(
+                    "resultMsg",
+                    "분류내려받기 실패: " + message
             );
         }
 

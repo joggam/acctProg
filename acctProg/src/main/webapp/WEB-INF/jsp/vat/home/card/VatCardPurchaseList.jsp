@@ -26,6 +26,132 @@
       rel="stylesheet"
       href="<c:url value='/css/vat/home/card/VatCardPurchase.css' />">
 
+<style type="text/css">
+/* VatCardPurchase 화면 전용 페이징 강제 보정 */
+.vat_paging {
+    position: relative !important;
+    display: block !important;
+    min-height: 32px !important;
+    margin-top: 20px !important;
+    text-align: center !important;
+}
+
+.vat_paging .pagination {
+    display: inline-block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-align: center !important;
+}
+
+/* ui:pagination이 어떤 중첩 구조를 만들더라도 bullet 제거 */
+.vat_paging ul,
+.vat_paging ol {
+    display: inline-block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+    list-style-type: none !important;
+}
+
+.vat_paging ul li,
+.vat_paging ol li,
+.vat_paging li {
+    display: inline-block !important;
+    float: none !important;
+    margin: 0 2px !important;
+    padding: 0 !important;
+    list-style: none !important;
+    list-style-type: none !important;
+    vertical-align: middle !important;
+}
+
+.vat_paging li::before,
+.vat_paging li::after,
+.vat_paging li::marker {
+    content: none !important;
+    display: none !important;
+}
+
+/* 일반 페이지 번호 */
+.vat_paging a,
+.vat_paging strong {
+    display: inline-block !important;
+    box-sizing: border-box !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    margin: 0 !important;
+    padding: 0 7px !important;
+    border: 1px solid #d9dee7 !important;
+    background: #fff !important;
+    color: #666 !important;
+    line-height: 26px !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    vertical-align: middle !important;
+}
+
+/* 현재 페이지 */
+.vat_paging li.current a,
+.vat_paging li.current strong,
+.vat_paging strong {
+    border-color: #334155 !important;
+    background: #334155 !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+}
+
+.vat_paging a:hover {
+    border-color: #334155 !important;
+    background: #334155 !important;
+    color: #fff !important;
+}
+
+/* image 타입 처음/이전/다음/마지막 */
+.vat_paging li.first a,
+.vat_paging li.prev a,
+.vat_paging li.next a,
+.vat_paging li.last a {
+    width: 28px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    text-indent: -9999px !important;
+    background-color: #fff !important;
+    background-position: center center !important;
+    background-repeat: no-repeat !important;
+}
+
+.vat_paging li.first a {
+    background-image: url("<c:url value='/images/egovframework/com/cmm/paging/pagination_first.gif'/>") !important;
+}
+.vat_paging li.prev a {
+    background-image: url("<c:url value='/images/egovframework/com/cmm/paging/pagination_prev.gif'/>") !important;
+}
+.vat_paging li.next a {
+    background-image: url("<c:url value='/images/egovframework/com/cmm/paging/pagination_next.gif'/>") !important;
+}
+.vat_paging li.last a {
+    background-image: url("<c:url value='/images/egovframework/com/cmm/paging/pagination_last.gif'/>") !important;
+}
+
+/* 조회된 기업회원 건수 옆 페이지당 조회건수 */
+.vat_total_area {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vat_page_unit {
+    height: 30px;
+    min-width: 82px;
+    padding: 0 8px;
+    border: 1px solid #ccd3dd;
+    background: #fff;
+    color: #333;
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+</style>
+
 <script type="text/javascript">
 
 function fn_vat_init() {
@@ -87,6 +213,19 @@ function fn_vat_selectPage(pageNo) {
         document.vatCardPurchaseForm;
 
     form.pageIndex.value = pageNo;
+
+    form.action =
+        "<c:url value='/vat/home/card/selectVatCardPurchaseList.do'/>";
+
+    form.submit();
+}
+
+function fn_vat_changePageUnit() {
+
+    var form =
+        document.vatCardPurchaseForm;
+
+    form.pageIndex.value = 1;
 
     form.action =
         "<c:url value='/vat/home/card/selectVatCardPurchaseList.do'/>";
@@ -167,6 +306,41 @@ function fn_vat_downloadSelected() {
 
     form.action =
         "<c:url value='/vat/home/card/downloadSelectedEntrprsMber.do'/>";
+
+    form.submit();
+}
+
+/**
+ * 선택 기업회원 홈택스 자료 분류내려받기.
+ *
+ * 선택한 기업들의 홈택스 엑셀을 최종 XLS 한 파일로 합친다.
+ */
+function fn_vat_downloadMerged() {
+
+    var checked =
+        document.querySelectorAll(
+            'input[name="selectedEntrprsMber"]:checked'
+        );
+
+    if (checked.length === 0) {
+        alert("분류내려받기 할 기업회원을 선택해 주세요.");
+        return;
+    }
+
+    var periodType = document.querySelector(
+        'input[name="searchPeriodType"]:checked'
+    );
+
+    if (!periodType || periodType.value !== "QUARTER") {
+        alert("분류내려받기는 현재 분기별 조회만 지원합니다.");
+        return;
+    }
+
+    var form =
+        document.vatCardPurchaseForm;
+
+    form.action =
+        "<c:url value='/vat/home/card/downloadMergedEntrprsMber.do'/>";
 
     form.submit();
 }
@@ -376,14 +550,34 @@ function fn_vat_excelDownload() {
 
     <div class="vat_result_top">
 
-        <div class="vat_total_amount">
-            조회된 기업회원 :
-            <strong>
-                <fmt:formatNumber
-                    value="${totalCount}"
-                    pattern="#,##0" />
-            </strong>
-            건
+        <div class="vat_total_area">
+            <div class="vat_total_amount">
+                조회된 기업회원 :
+                <strong>
+                    <fmt:formatNumber
+                        value="${totalCount}"
+                        pattern="#,##0" />
+                </strong>
+                건
+            </div>
+
+            <select name="pageUnit"
+                    class="vat_page_unit"
+                    title="페이지당 조회 건수"
+                    onchange="fn_vat_changePageUnit();">
+                <option value="10"
+                    <c:if test="${searchVO.pageUnit == 10}">selected="selected"</c:if>>10개</option>
+                <option value="30"
+                    <c:if test="${searchVO.pageUnit == 30}">selected="selected"</c:if>>30개</option>
+                <option value="50"
+                    <c:if test="${searchVO.pageUnit == 50}">selected="selected"</c:if>>50개</option>
+                <option value="100"
+                    <c:if test="${searchVO.pageUnit == 100}">selected="selected"</c:if>>100개</option>
+                <option value="200"
+                    <c:if test="${searchVO.pageUnit == 200}">selected="selected"</c:if>>200개</option>
+                <option value="0"
+                    <c:if test="${searchVO.pageUnit == 0}">selected="selected"</c:if>>ALL</option>
+            </select>
         </div>
 
         <div>
@@ -391,6 +585,11 @@ function fn_vat_excelDownload() {
                    class="vat_btn vat_btn_download"
                    value="내려받기"
                    onclick="fn_vat_downloadSelected();">
+
+            <input type="button"
+                   class="vat_btn vat_btn_download"
+                   value="분류내려받기"
+                   onclick="fn_vat_downloadMerged();">
         </div>
 
     </div>
@@ -491,10 +690,6 @@ function fn_vat_excelDownload() {
                 type="image"
                 jsFunction="fn_vat_selectPage" />
         </div>
-
-        <span class="vat_page_count">
-            총 <strong><c:out value="${totalCount}" /></strong>건
-        </span>
 
     </div>
 

@@ -1,6 +1,7 @@
 package com.hometax.com;
 
 import java.io.File;
+import java.util.List;
 
 import org.openqa.selenium.WebDriver;
 
@@ -59,6 +60,7 @@ public class HometaxMain {
                             businessNumber
                     );
 
+            // 기존 내려받기 기능은 기존 로직 그대로 유지
             return ExcelTitleCopy.copyExcelByTitle(
                     excelFile
             );
@@ -72,6 +74,42 @@ public class HometaxMain {
                 }
             }
         }
+    }
+
+    /**
+     * 분류내려받기 전용.
+     * ExcelTitleCopy는 호출하지 않는다.
+     * 선택한 여러 기업의 홈택스 원본 XLS를 최종 XLS 한 파일로 병합한다.
+     */
+    public static File executeMerged(
+            List<HometaxMergeParameter> parameters,
+            int year,
+            int quarter) throws Exception {
+
+        if (parameters == null || parameters.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "분류내려받기 대상이 없습니다."
+            );
+        }
+
+        if (year < 2000 || year > 2100) {
+            throw new IllegalArgumentException(
+                    "조회연도가 올바르지 않습니다."
+            );
+        }
+
+        if (quarter < 1 || quarter > 4) {
+            throw new IllegalArgumentException(
+                    "분기가 올바르지 않습니다."
+            );
+        }
+
+        return HometaxMergeService.execute(
+                parameters,
+                year,
+                quarter,
+                DOWNLOAD_DIR
+        );
     }
 
     private static void validateLoginParameter(
@@ -109,12 +147,10 @@ public class HometaxMain {
                 || !businessNumber
                         .replaceAll("[^0-9]", "")
                         .matches("[0-9]{10}")) {
-
             throw new IllegalArgumentException(
                     "사업자등록번호가 올바르지 않습니다."
             );
         }
-
 
         if (year < 2000 || year > 2100) {
             throw new IllegalArgumentException("조회연도가 올바르지 않습니다.");
