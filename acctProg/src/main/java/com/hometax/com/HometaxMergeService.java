@@ -127,12 +127,10 @@ public class HometaxMergeService {
 
             } catch (Exception e) {
 
-                String message = rootMessage(e);
+                String message = getDetailedDownloadFailReason(e);
 
                 downloadFailMessages.add(
-                        parameter.getHometaxId()
-                        + "(" + parameter.getBusinessNumber() + ") : "
-                        + message
+                        buildDownloadFailMessage(parameter, message)
                 );
 
                 System.out.println(
@@ -169,6 +167,22 @@ public class HometaxMergeService {
             );
         }
 
+        File downloadFailFile = null;
+
+        if (!downloadFailMessages.isEmpty()) {
+            downloadFailFile = writeDownloadFailText(
+                    downloadFailMessages,
+                    year,
+                    quarter,
+                    downloadFolder
+            );
+
+            System.out.println(
+                    "[MERGE-DOWNLOAD-FAIL-TXT] "
+                    + downloadFailFile.getAbsolutePath()
+            );
+        }
+
         if (downloadedFiles.isEmpty()) {
             String firstError = "";
 
@@ -187,6 +201,10 @@ public class HometaxMergeService {
                             ? ""
                             : " 로그인 실패 TXT: "
                             + loginFailFile.getAbsolutePath())
+                    + (downloadFailFile == null
+                            ? ""
+                            : " 다운로드 실패 TXT: "
+                            + downloadFailFile.getAbsolutePath())
             );
         }
 
@@ -235,6 +253,266 @@ public class HometaxMergeService {
         }
 
         return mergedFile;
+    }
+
+    /**
+     * 로그인 성공 후 다운로드 단계에서 실패한 업체를 UTF-8 TXT로 저장한다.
+     * 비밀번호와 주민등록번호는 기록하지 않는다.
+     */
+    private static File writeDownloadFailText(
+            List<String> downloadFailMessages,
+            int year,
+            int quarter,
+            File downloadFolder) throws Exception {
+
+        String timestamp =
+                new SimpleDateFormat("yyyyMMdd_HHmmss")
+                        .format(new Date());
+
+        File outputFile = new File(
+                downloadFolder,
+                "홈택스_분류내려받기실패_"
+                + year
+                + "년_"
+                + quarter
+                + "분기_"
+                + timestamp
+                + ".txt"
+        );
+
+        try (
+                BufferedWriter writer =
+                        new BufferedWriter(
+                                new OutputStreamWriter(
+                                        new FileOutputStream(outputFile),
+                                        StandardCharsets.UTF_8
+                                )
+                        )
+        ) {
+            writer.write('\uFEFF');
+            writer.write("홈택스 분류내려받기 실패 업체");
+            writer.newLine();
+            writer.write("조회기간 : "
+                    + year + "년 " + quarter + "분기");
+            writer.newLine();
+            writer.write("실패건수 : "
+                    + downloadFailMessages.size() + "건");
+            writer.newLine();
+            writer.write(
+                    "============================================================"
+            );
+            writer.newLine();
+            writer.write("상호명 | 아이디 | 사업자등록번호 | 실패사유");
+            writer.newLine();
+            writer.write(
+                    "============================================================"
+            );
+            writer.newLine();
+
+            for (String failMessage : downloadFailMessages) {
+                writer.write(failMessage);
+                writer.newLine();
+            }
+        }
+
+        return outputFile;
+    }
+
+    private static String buildDownloadFailMessage(
+            HometaxMergeParameter parameter,
+            String message) {
+
+        String companyName = parameter.getCompanyName();
+
+        if (companyName == null || companyName.trim().length() == 0) {
+            companyName = "-";
+        }
+
+        return companyName
+                + " | "
+                + parameter.getHometaxId()
+                + " | "
+                + formatBusinessNumber(parameter.getBusinessNumber())
+                + " | "
+                + (message == null || message.trim().length() == 0
+                        ? "내려받기 실패"
+                        : message.trim());
+    }
+
+    /**
+     * 분류내려받기 중 로그인 이후 발생한 실패의 실제 원인을 cause 체인까지 확인한다.
+     * Selenium Alert 문구가 있으면 가장 우선해서 사용한다.
+     */
+    private static String getDetailedDownloadFailReason(Throwable throwable) {
+
+        if (throwable == null) {
+            return "내려받기 실패";
+        }
+
+        String fallback = null;
+        Throwable current = throwable;
+        int depth = 0;
+
+        while (current != null && depth < 20) {
+
+            String message = current.getMessage();
+            String className = current.getClass().getName();
+            String text = message == null ? "" : message.trim();
+
+            String alertText = extractAlertText(text);
+            if (alertText.length() > 0) {
+                return alertText;
+            }
+
+            if (className.contains("TimeoutException")
+                    || text.contains("TimeoutException")
+                    || text.contains("Expected condition failed")) {
+                return appendDetail(
+                        "홈택스 처리시간 초과",
+                        firstMeaningfulLine(text)
+                );
+            }
+
+            if (className.contains("NoSuchElementException")
+                    || text.contains("NoSuchElementException")) {
+                return appendDetail(
+                        "홈택스 화면 요소를 찾지 못함",
+                        firstMeaningfulLine(text)
+                );
+            }
+
+            if (className.contains("StaleElementReferenceException")
+                    || text.contains("StaleElementReferenceException")) {
+                return appendDetail(
+                        "홈택스 화면이 갱신되어 요소 참조가 끊어짐",
+                        firstMeaningfulLine(text)
+                );
+            }
+
+            if (className.contains("ElementClickInterceptedException")
+                    || text.contains("ElementClickInterceptedException")) {
+                return appendDetail(
+                        "홈택스 화면에서 클릭이 다른 요소에 가로막힘",
+                        firstMeaningfulLine(text)
+                );
+            }
+
+            if (className.contains("NoSuchWindowException")
+                    || text.contains("NoSuchWindowException")) {
+                return appendDetail(
+                        "홈택스 브라우저 창을 찾지 못함",
+                        firstMeaningfulLine(text)
+                );
+            }
+
+            if (className.contains("SessionNotCreatedException")
+                    || text.contains("SessionNotCreatedException")) {
+                return appendDetail(
+                        "Chrome WebDriver 세션 생성 실패",
+                        firstMeaningfulLine(text)
+                );
+            }
+
+            if (className.contains("WebDriverException")
+                    || text.contains("WebDriverException")) {
+                fallback = appendDetail(
+                        "브라우저 처리 오류",
+                        firstMeaningfulLine(text)
+                );
+            } else if (text.length() > 0
+                    && !isGenericDownloadFailMessage(text)) {
+                fallback = firstMeaningfulLine(text);
+            }
+
+            current = current.getCause();
+            depth++;
+        }
+
+        if (fallback != null && fallback.trim().length() > 0) {
+            return fallback.trim();
+        }
+
+        String topMessage = throwable.getMessage();
+        if (topMessage != null && topMessage.trim().length() > 0) {
+            return firstMeaningfulLine(topMessage);
+        }
+
+        return throwable.getClass().getSimpleName();
+    }
+
+    private static String extractAlertText(String text) {
+
+        if (text == null || text.trim().length() == 0) {
+            return "";
+        }
+
+        String value = text.trim();
+        String marker = "Alert text :";
+        int start = value.indexOf(marker);
+
+        if (start < 0) {
+            return "";
+        }
+
+        String alertText = value.substring(start + marker.length()).trim();
+
+        int braceIndex = alertText.indexOf('}');
+        if (braceIndex >= 0) {
+            alertText = alertText.substring(0, braceIndex).trim();
+        }
+
+        int lineIndex = alertText.indexOf('\n');
+        if (lineIndex >= 0) {
+            alertText = alertText.substring(0, lineIndex).trim();
+        }
+
+        return alertText;
+    }
+
+    private static boolean isGenericDownloadFailMessage(String text) {
+        if (text == null) {
+            return false;
+        }
+
+        String value = text.trim();
+        return value.matches("\\d{4}년\\s*\\d+분기\\s*다운로드 실패")
+                || "다운로드 실패".equals(value)
+                || "홈택스 다운로드 실패".equals(value);
+    }
+
+    private static String firstMeaningfulLine(String text) {
+
+        if (text == null) {
+            return "";
+        }
+
+        String value = text.trim();
+        int newLine = value.indexOf('\n');
+
+        if (newLine >= 0) {
+            value = value.substring(0, newLine).trim();
+        }
+
+        if (value.length() > 250) {
+            value = value.substring(0, 250);
+        }
+
+        return value;
+    }
+
+    private static String appendDetail(String summary, String detail) {
+
+        if (detail == null || detail.trim().length() == 0) {
+            return summary;
+        }
+
+        String value = detail.trim();
+
+        if (value.equals(summary)) {
+            return summary;
+        }
+
+        return summary + " - " + value;
     }
 
     /**
