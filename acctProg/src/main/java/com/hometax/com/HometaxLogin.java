@@ -233,18 +233,36 @@ public class HometaxLogin {
 
 
             // =====================================================
-            // 7. 주민번호 앞 6자리
+            // 7. ID/PW 인증 후 다음 로그인 상태 확인
+            //
+            // 우선순위
+            // ① 주민번호 입력란이 나오면 기존 2차 인증 로직 진행
+            // ② 주민번호가 없고 보안카드 팝업이 나오면 취소 후 일반 로그인
+            // ③ 위 두 경우가 아니고 로그아웃이 표시되면 ID/PW만으로 로그인 성공
+            //
+            // 드문 케이스 때문에 정상 계정이 30초씩 대기하지 않도록
+            // 세 상태를 동시에 확인한다.
             // =====================================================
 
+            String originalWindowAfterIdPw =
+                    driver.getWindowHandle();
+
             WebElement jumin1 =
-                    wait.until(
-                        ExpectedConditions
-                            .visibilityOfElementLocated(
-                                By.id(
-                                    "mf_txppWframe_UTXPPABC12_wframe_iptUserJuminNo1"
-                                )
-                            )
+                    waitForJuminOrFallbackLogin(
+                            driver,
+                            originalWindowAfterIdPw
                     );
+
+            // 주민번호 입력 없이 보안카드 취소 또는
+            // ID/PW 인증만으로 로그인이 완료된 케이스
+            if (jumin1 == null) {
+
+                System.out.println(
+                        "[LOGIN-4] 홈택스 로그인 성공"
+                );
+
+                return driver;
+            }
 
             jumin1.clear();
 
@@ -348,6 +366,170 @@ public class HometaxLogin {
                     e
             );
         }
+    }
+
+
+    /**
+     * ID/PW 인증 완료 직후 다음 상태를 확인한다.
+     *
+     * 정상적인 대부분의 계정은 주민번호 입력란이 먼저 나타난다.
+     *
+     * 드문 케이스:
+     *  - 주민번호 입력 전에 보안카드 팝업이 나타나는 경우
+     *    -> 동일한 기존 보안카드 취소 로직으로 일반 로그인 처리
+     *
+     * 매우 드문 케이스:
+     *  - ID/PW 인증만으로 로그인되는 경우
+     *    -> 로그아웃 표시를 확인하고 즉시 성공 처리
+     *
+     * @return 주민번호 입력이 필요한 경우 jumin1 WebElement,
+     *         이미 로그인이 완료된 경우 null
+     */
+    private static WebElement waitForJuminOrFallbackLogin(
+            WebDriver driver,
+            String originalWindow) {
+
+        final String jumin1Id =
+                "mf_txppWframe_UTXPPABC12_wframe_iptUserJuminNo1";
+
+        long endTime =
+                System.currentTimeMillis()
+                + Duration.ofSeconds(30).toMillis();
+
+        while (System.currentTimeMillis() < endTime) {
+
+            // =====================================================
+            // 1. 최우선: 주민번호 입력란
+            // =====================================================
+            try {
+
+                for (WebElement element :
+                        driver.findElements(
+                            By.id(jumin1Id)
+                        )) {
+
+                    try {
+
+                        if (element.isDisplayed()
+                                && element.isEnabled()) {
+
+                            System.out.println(
+                                    "[LOGIN-JUMIN] 주민번호 인증 화면 확인"
+                            );
+
+                            return element;
+                        }
+
+                    } catch (Exception ignored) {
+                    }
+                }
+
+            } catch (Exception ignored) {
+            }
+
+
+            // =====================================================
+            // 2. 주민번호 전에 보안카드 팝업이 나온 특수 케이스
+            // =====================================================
+            try {
+
+                String securityCardWindow =
+                        findSecurityCardPopupWindow(
+                                driver
+                        );
+
+                if (securityCardWindow != null) {
+
+                    System.out.println(
+                            "[LOGIN-SECURITY-CARD-BEFORE-JUMIN] "
+                            + "주민번호 입력 전 보안카드 팝업 감지"
+                    );
+
+                    // findSecurityCardPopupWindow가 팝업 창으로 전환했을 수 있으므로
+                    // 기존 보안카드 처리 메서드가 그대로 팝업을 처리하게 한다.
+                    boolean loginSuccess =
+                            waitForLoginSuccessOrSecurityCardPopup(
+                                    driver,
+                                    originalWindow
+                            );
+
+                    if (loginSuccess) {
+
+                        System.out.println(
+                                "[LOGIN-SECURITY-CARD-BEFORE-JUMIN] "
+                                + "보안카드 취소 후 일반 로그인 성공"
+                        );
+
+                        return null;
+                    }
+
+                    throw new RuntimeException(
+                            "주민번호 입력 전 보안카드 팝업 처리 후 "
+                            + "로그인 성공 여부를 확인하지 못했습니다."
+                    );
+                }
+
+            } catch (RuntimeException e) {
+
+                throw e;
+
+            } catch (Exception ignored) {
+            }
+
+
+            // =====================================================
+            // 3. 마지막 케이스: ID/PW 인증만으로 로그인 완료
+            // =====================================================
+            try {
+
+                // 팝업 탐색 과정에서 다른 창으로 이동했을 수 있으므로
+                // 원래 홈택스 창으로 복귀한 뒤 로그아웃을 확인한다.
+                if (originalWindow != null
+                        && driver.getWindowHandles()
+                                 .contains(originalWindow)) {
+
+                    driver.switchTo()
+                          .window(originalWindow);
+                }
+
+                boolean logoutVisible =
+                        driver.findElements(
+                            By.xpath(
+                                "//*[normalize-space(text())='로그아웃']"
+                            )
+                        )
+                        .stream()
+                        .anyMatch(element -> {
+
+                            try {
+                                return element.isDisplayed();
+                            } catch (Exception e) {
+                                return false;
+                            }
+                        });
+
+                if (logoutVisible) {
+
+                    System.out.println(
+                            "[LOGIN-IDPW-ONLY] "
+                            + "ID/PW 인증만으로 로그인 성공"
+                    );
+
+                    return null;
+                }
+
+            } catch (Exception ignored) {
+            }
+
+
+            sleep(500);
+        }
+
+
+        throw new RuntimeException(
+                "ID/PW 인증 후 주민번호 입력화면, "
+                + "보안카드 팝업 또는 로그인 완료 상태를 확인하지 못했습니다."
+        );
     }
 
 

@@ -77,6 +77,16 @@ public class HometaxMergeService {
 
         for (HometaxMergeParameter parameter : parameters) {
 
+            // 사용자가 취소를 요청했으면 다음 업체를 시작하지 않는다.
+            if (HometaxProgressTracker.isCancelRequested(jobId)) {
+
+                System.out.println(
+                        "[MERGE-CANCEL] 사용자 취소 요청으로 다음 업체 처리 중단"
+                );
+
+                break;
+            }
+
             HometaxProgressTracker.setCurrent(
                     jobId,
                     parameter.getCompanyName()
@@ -234,32 +244,25 @@ public class HometaxMergeService {
 
         if (downloadedFiles.isEmpty()) {
 
+            if (HometaxProgressTracker.isCancelRequested(jobId)) {
+
+                deleteDownloadsHtml(
+                        downloadFolder
+                );
+
+                HometaxProgressTracker.cancelled(
+                        jobId,
+                        "처리가 취소되었습니다."
+                );
+
+                return new ArrayList<File>();
+            }
+
             // 분류내려받기 과정에서 Chrome/홈택스가 부수적으로 생성한
             // downloads.htm 계열 파일을 정리한다.
             deleteDownloadsHtml(
                     downloadFolder
             );
-
-            // =========================================================
-            // 모든 대상이 "조회된 내역이 없습니다."인 경우는
-            // 시스템 오류가 아니라 정상적인 조회 결과로 처리한다.
-            //
-            // - 로그인 실패가 없어야 함
-            // - 다운로드 실패가 1건 이상 있어야 함
-            // - 모든 다운로드 실패 사유가 "조회된 내역이 없습니다."여야 함
-            //
-            // 실패 TXT는 위에서 이미 생성했으므로 그대로 남긴다.
-            // Controller에서는 빈 List를 받아 "조회된 내역 없음"으로 안내한다.
-            // =========================================================
-            if (loginFailMessages.isEmpty()
-                    && allDownloadFailuresAreNoData(downloadFailMessages)) {
-
-                System.out.println(
-                        "[MERGE-NO-DATA] 모든 대상의 조회된 내역이 없습니다."
-                );
-
-                return new ArrayList<File>();
-            }
 
             String firstError = "";
 
@@ -337,29 +340,6 @@ public class HometaxMergeService {
 
         return mergedFiles;
     }
-
-    /**
-     * 다운로드 실패 목록이 전부 "조회된 내역이 없습니다."인지 확인한다.
-     */
-    private static boolean allDownloadFailuresAreNoData(
-            List<String> downloadFailMessages) {
-
-        if (downloadFailMessages == null
-                || downloadFailMessages.isEmpty()) {
-            return false;
-        }
-
-        for (String failMessage : downloadFailMessages) {
-
-            if (failMessage == null
-                    || !failMessage.contains("조회된 내역이 없습니다.")) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
 
     /**
      * 분류내려받기 중 Chrome/홈택스가 부수적으로 생성하는

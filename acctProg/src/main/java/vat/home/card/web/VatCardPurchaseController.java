@@ -127,6 +127,29 @@ public class VatCardPurchaseController {
 
 
     /**
+     * 홈택스 내려받기 취소 요청.
+     * 현재 처리 중인 업체는 안전하게 마무리하고 다음 업체부터 중단한다.
+     */
+    @ResponseBody
+    @RequestMapping("/vat/home/card/cancelDownload.do")
+    public Map<String, Object> cancelDownload(
+            @RequestParam("jobId") String jobId) {
+
+        HometaxProgressTracker.requestCancel(
+                jobId
+        );
+
+        Map<String, Object> result =
+                new java.util.HashMap<String, Object>();
+
+        result.put("success", Boolean.TRUE);
+        result.put("message", "취소 요청이 접수되었습니다.");
+
+        return result;
+    }
+
+
+    /**
      * 체크된 기업회원의 홈택스 자료 내려받기/가공 처리.
      * 화면에서는 selectedBizrSeq 값으로 COMTNENTRPRSBIZR.BIZR_SEQ만 전달한다.
      */
@@ -187,6 +210,16 @@ public class VatCardPurchaseController {
         List<String> resultFiles = new ArrayList<String>();
 
         for (String bizrSeqValue : selectedBizrSeq) {
+
+            // 취소 요청 시 다음 업체를 시작하지 않는다.
+            if (HometaxProgressTracker.isCancelRequested(jobId)) {
+
+                System.out.println(
+                        "[DOWNLOAD-CANCEL] 사용자 취소 요청으로 다음 업체 처리 중단"
+                );
+
+                break;
+            }
 
             if (bizrSeqValue == null
                     || bizrSeqValue.trim().length() == 0) {
@@ -318,39 +351,69 @@ public class VatCardPurchaseController {
             );
         }
 
-        String completeMessage =
-                String.valueOf(model.get("resultMsg"));
+        if (HometaxProgressTracker.isCancelRequested(jobId)) {
 
-        // 전부 실패한 경우에는 화면에서도 성공으로 표시하지 않는다.
-        if (successCount == 0 && !failMessages.isEmpty()) {
+            String cancelMessage =
+                    "처리가 취소되었습니다.";
 
-            HometaxProgressTracker.fail(
+            HometaxProgressTracker.cancelled(
                     jobId,
-                    completeMessage
+                    cancelMessage
             );
 
             model.addAttribute(
                     "downloadStatus",
-                    "ERROR"
+                    "CANCELLED"
+            );
+
+            model.addAttribute(
+                    "downloadMessage",
+                    cancelMessage
             );
 
         } else {
 
-            HometaxProgressTracker.finish(
-                    jobId,
-                    completeMessage
-            );
+            if (HometaxProgressTracker.isCancelRequested(jobId)) {
 
-            model.addAttribute(
-                    "downloadStatus",
-                    "SUCCESS"
-            );
+                String cancelMessage =
+                        "처리가 취소되었습니다.";
+
+                HometaxProgressTracker.cancelled(
+                        jobId,
+                        cancelMessage
+                );
+
+                model.addAttribute(
+                        "downloadStatus",
+                        "CANCELLED"
+                );
+
+                model.addAttribute(
+                        "downloadMessage",
+                        cancelMessage
+                );
+
+            } else {
+
+                String completeMessage =
+                        "처리완료되었습니다.";
+
+                HometaxProgressTracker.finish(
+                        jobId,
+                        completeMessage
+                );
+
+                model.addAttribute(
+                        "downloadStatus",
+                        "SUCCESS"
+                );
+
+                model.addAttribute(
+                        "downloadMessage",
+                        completeMessage
+                );
+            }
         }
-
-        model.addAttribute(
-                "downloadMessage",
-                completeMessage
-        );
 
         return "vat/home/card/VatCardPurchaseDownloadResult";
     }
@@ -439,20 +502,8 @@ public class VatCardPurchaseController {
                     resultFiles
             );
 
-            String completeMessage;
-
-            if (resultFiles.isEmpty()) {
-                // HometaxMergeService에서 모든 대상이
-                // "조회된 내역이 없습니다."인 경우 빈 List를 반환한다.
-                // 이 경우는 오류가 아니라 정상 조회 결과로 안내한다.
-                completeMessage =
-                        "분류내려받기 완료: 조회된 내역이 없습니다.";
-            } else {
-                completeMessage =
-                        "분류내려받기가 완료되었습니다. 생성 파일 "
-                        + resultFiles.size()
-                        + "건";
-            }
+            String completeMessage =
+                    "처리완료되었습니다.";
 
             HometaxProgressTracker.finish(
                     jobId,

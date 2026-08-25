@@ -208,6 +208,23 @@
     line-height: 1.6;
 }
 
+.vat_cancel_btn {
+    margin-top: 18px;
+    min-width: 100px;
+    height: 34px;
+    padding: 0 18px;
+    border: 1px solid #9ca3af;
+    border-radius: 4px;
+    background: #fff;
+    color: #333;
+    cursor: pointer;
+}
+
+.vat_cancel_btn:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+
 @keyframes vat_loading_spin {
     from {
         transform: rotate(0deg);
@@ -545,6 +562,16 @@ function fn_vat_showLoading(title, message) {
         layer.style.display = "block";
     }
 
+    var cancelButton =
+        document.getElementById(
+            "vatCancelButton"
+        );
+
+    if (cancelButton) {
+        cancelButton.disabled = false;
+        cancelButton.value = "취소";
+    }
+
     var buttons =
         document.querySelectorAll(
             ".vat_btn_download"
@@ -807,6 +834,72 @@ function fn_vat_escapeHtml(value) {
         .replace(/'/g, "&#39;");
 }
 
+function fn_vat_cancelDownload() {
+
+    var jobIdElement =
+        document.getElementById(
+            "vatDownloadJobId"
+        );
+
+    var jobId =
+        jobIdElement
+        ? jobIdElement.value
+        : "";
+
+    if (!jobId) {
+        return;
+    }
+
+    if (!confirm(
+            "현재 처리 중인 업체까지만 마친 뒤 다운로드를 중단하시겠습니까?"
+        )) {
+
+        return;
+    }
+
+    var cancelButton =
+        document.getElementById(
+            "vatCancelButton"
+        );
+
+    if (cancelButton) {
+        cancelButton.disabled = true;
+        cancelButton.value = "취소 요청중";
+    }
+
+    var messageElement =
+        document.getElementById(
+            "vatLoadingMessage"
+        );
+
+    if (messageElement) {
+
+        messageElement.innerHTML =
+            "취소 요청을 처리하고 있습니다.<br>"
+            + "현재 업체 처리 후 중단됩니다.";
+    }
+
+    var xhr =
+        new XMLHttpRequest();
+
+    xhr.open(
+        "POST",
+        "<c:url value='/vat/home/card/cancelDownload.do'/>",
+        true
+    );
+
+    xhr.setRequestHeader(
+        "Content-Type",
+        "application/x-www-form-urlencoded; charset=UTF-8"
+    );
+
+    xhr.send(
+        "jobId="
+        + encodeURIComponent(jobId)
+    );
+}
+
+
 /**
  * 숨김 iframe의 다운로드 처리 응답이 호출한다.
  *
@@ -841,11 +934,23 @@ function fn_vat_downloadFinished(
 
         // alert는 사용자가 [확인]을 누를 때까지
         // 아래 목록 조회 submit이 실행되지 않는다.
-        alert(
-            message
-            ? message
-            : "처리완료되었습니다."
-        );
+        alert("처리완료되었습니다.");
+
+        form.pageIndex.value = 1;
+
+        form.action =
+            "<c:url value='/vat/home/card/selectVatCardPurchaseList.do'/>";
+
+        form.submit();
+
+        return;
+    }
+
+    if (status === "CANCELLED") {
+
+        fn_vat_hideLoading();
+
+        alert("처리가 취소되었습니다.");
 
         form.pageIndex.value = 1;
 
@@ -1272,6 +1377,12 @@ function fn_vat_excelDownload() {
                     예상 잔여시간 계산중
                 </div>
             </div>
+
+            <input type="button"
+                   id="vatCancelButton"
+                   class="vat_cancel_btn"
+                   value="취소"
+                   onclick="fn_vat_cancelDownload();">
 
         </div>
     </div>

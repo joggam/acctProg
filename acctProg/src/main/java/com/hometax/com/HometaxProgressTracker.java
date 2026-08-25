@@ -34,6 +34,7 @@ public final class HometaxProgressTracker {
         progress.currentCompany = "";
         progress.startTime = System.currentTimeMillis();
         progress.finished = false;
+        progress.cancelRequested = false;
         progress.status = "RUNNING";
         progress.message = "";
         progress.type = type == null ? "" : type;
@@ -77,6 +78,56 @@ public final class HometaxProgressTracker {
             progress.completedCount++;
         }
     }
+
+    /**
+     * 사용자가 화면에서 취소 버튼을 누른 상태로 변경한다.
+     * 현재 처리 중인 업체는 안전하게 마친 뒤 다음 업체부터 중단한다.
+     */
+    public static void requestCancel(
+            String jobId) {
+
+        Progress progress =
+                PROGRESS_MAP.get(jobId);
+
+        if (progress == null) {
+            return;
+        }
+
+        progress.cancelRequested = true;
+        progress.status = "CANCEL_REQUESTED";
+        progress.message = "취소 요청 처리중";
+    }
+
+    public static boolean isCancelRequested(
+            String jobId) {
+
+        Progress progress =
+                PROGRESS_MAP.get(jobId);
+
+        return progress != null
+                && progress.cancelRequested;
+    }
+
+    public static void cancelled(
+            String jobId,
+            String message) {
+
+        Progress progress =
+                PROGRESS_MAP.get(jobId);
+
+        if (progress == null) {
+            return;
+        }
+
+        progress.cancelRequested = true;
+        progress.finished = true;
+        progress.status = "CANCELLED";
+        progress.message =
+                message == null
+                ? "처리가 취소되었습니다."
+                : message;
+    }
+
 
     public static void finish(
             String jobId,
@@ -185,6 +236,7 @@ public final class HometaxProgressTracker {
         result.put("type", progress.type);
         result.put("status", progress.status);
         result.put("finished", progress.finished);
+        result.put("cancelRequested", progress.cancelRequested);
         result.put("totalCount", progress.totalCount);
         result.put("completedCount", progress.completedCount);
         result.put("currentCompany", progress.currentCompany);
@@ -207,6 +259,8 @@ public final class HometaxProgressTracker {
         private volatile long startTime;
 
         private volatile boolean finished;
+
+        private volatile boolean cancelRequested;
 
         private volatile String status;
 
