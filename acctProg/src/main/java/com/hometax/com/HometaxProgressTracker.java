@@ -3,6 +3,12 @@ package com.hometax.com;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+
+import org.openqa.selenium.WebDriver;
 
 /**
  * 홈택스 내려받기 진행상태 저장소.
@@ -14,6 +20,46 @@ public final class HometaxProgressTracker {
 
     private static final Map<String, Progress> PROGRESS_MAP =
             new ConcurrentHashMap<String, Progress>();
+
+    /**
+     * 일반 내려받기는 기존 Service 시그니처를 바꾸지 않기 위해
+     * 현재 요청 Thread의 jobId를 전달하는 용도로만 사용한다.
+     */
+    private static final ThreadLocal<String> CURRENT_JOB_ID =
+            new ThreadLocal<String>();
+
+    /**
+     * 브라우저/탭 강제 종료로 sendBeacon이 전달되지 않는 경우에도
+     * heartbeat가 10초 이상 끊기면 현재 WebDriver를 즉시 종료한다.
+     */
+    private static final ScheduledExecutorService WATCHDOG =
+            Executors.newSingleThreadScheduledExecutor(
+                    new ThreadFactory() {
+                        @Override
+                        public Thread newThread(Runnable runnable) {
+                            Thread thread = new Thread(
+                                    runnable,
+                                    "hometax-progress-watchdog"
+                            );
+                            thread.setDaemon(true);
+                            return thread;
+                        }
+                    }
+            );
+
+    static {
+        WATCHDOG.scheduleAtFixedRate(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        checkDisconnectedJobs();
+                    }
+                },
+                3L,
+                2L,
+                TimeUnit.SECONDS
+        );
+    }
 
     private HometaxProgressTracker() {
     }
@@ -33,8 +79,10 @@ public final class HometaxProgressTracker {
         progress.completedCount = 0;
         progress.currentCompany = "";
         progress.startTime = System.currentTimeMillis();
+        progress.lastHeartbeatTime = System.currentTimeMillis();
         progress.finished = false;
         progress.cancelRequested = false;
+        progress.cancelSource = "";
         progress.status = "RUNNING";
         progress.message = "";
         progress.type = type == null ? "" : type;
@@ -44,6 +92,49 @@ public final class HometaxProgressTracker {
                 progress
         );
     }
+
+    /**
+     * 처리 화면이 살아 있다는 신호를 갱신한다.
+     */
+    public static void heartbeat(
+            String jobId) {
+
+        Progress progress =
+                PROGRESS_MAP.get(jobId);
+
+        if (progress == null
+                || progress.finished) {
+            return;
+        }
+
+        progress.lastHeartbeatTime =
+                System.currentTimeMillis();
+    }
+
+    /**
+     * 처리 화면이 닫히거나 이동되어 heartbeat가 끊겼는지 확인한다.
+     *
+     * 최초 요청 직후/일시적인 브라우저 지연을 고려하여
+     * 10초 이상 신호가 없을 때만 종료 대상으로 판단한다.
+     */
+    public static boolean isClientDisconnected(
+            String jobId) {
+
+        Progress progress =
+                PROGRESS_MAP.get(jobId);
+
+        if (progress == null
+                || progress.finished) {
+            return false;
+        }
+
+        long elapsed =
+                System.currentTimeMillis()
+                - progress.lastHeartbeatTime;
+
+        return elapsed > 10000L;
+    }
+
 
     public static void setCurrent(
             String jobId,
@@ -86,6 +177,22 @@ public final class HometaxProgressTracker {
     public static void requestCancel(
             String jobId) {
 
+        requestCancel(
+                jobId,
+                "BUTTON"
+        );
+    }
+
+    /**
+     * 취소 원인을 함께 기록한다.
+     *
+     * BUTTON     : 화면의 취소 버튼 클릭
+     * PAGE_CLOSE : 처리중인 웹페이지/탭 종료 또는 heartbeat 단절
+     */
+    public static void requestCancel(
+            String jobId,
+            String cancelSource) {
+
         Progress progress =
                 PROGRESS_MAP.get(jobId);
 
@@ -94,8 +201,234 @@ public final class HometaxProgressTracker {
         }
 
         progress.cancelRequested = true;
+        progress.cancelSource =
+                cancelSource == null
+                ? ""
+                : cancelSource.trim();
+
         progress.status = "CANCEL_REQUESTED";
         progress.message = "취소 요청 처리중";
+
+        stopActiveDriver(
+                jobId,
+                progress.cancelSource
+        );
+    }
+
+    public static void setCurrentJobId(
+            String jobId) {
+
+        if (jobId == null
+                || jobId.trim().length() == 0) {
+            CURRENT_JOB_ID.remove();
+            return;
+        }
+
+        CURRENT_JOB_ID.set(
+                jobId
+        );
+    }
+
+    public static void clearCurrentJobId() {
+        CURRENT_JOB_ID.remove();
+    }
+
+    public static String getCurrentJobId() {
+        return CURRENT_JOB_ID.get();
+    }
+
+    public static boolean isCurrentJobCancelled() {
+
+        String jobId =
+                getCurrentJobId();
+
+        return jobId != null
+                && isCancelRequested(jobId);
+    }
+
+    /**
+     * HometaxLogin에서 ChromeDriver가 생성되는 즉시 현재 jobId와 연결한다.
+     * 취소 요청이 이미 들어온 상태라면 등록 직후 바로 종료한다.
+     */
+    public static void registerCurrentDriver(
+            WebDriver driver) {
+
+        String jobId =
+                getCurrentJobId();
+
+        if (jobId == null
+                || driver == null) {
+            return;
+        }
+
+        Progress progress =
+                PROGRESS_MAP.get(jobId);
+
+        if (progress == null) {
+            return;
+        }
+
+        progress.activeDriver = driver;
+
+        if (progress.cancelRequested) {
+            stopActiveDriver(
+                    jobId,
+                    progress.cancelSource
+            );
+        }
+    }
+
+    public static void unregisterCurrentDriver(
+            WebDriver driver) {
+
+        String jobId =
+                getCurrentJobId();
+
+        unregisterDriver(
+                jobId,
+                driver
+        );
+    }
+
+    public static void unregisterDriver(
+            String jobId,
+            WebDriver driver) {
+
+        if (jobId == null) {
+            return;
+        }
+
+        Progress progress =
+                PROGRESS_MAP.get(jobId);
+
+        if (progress == null) {
+            return;
+        }
+
+        if (driver == null
+                || progress.activeDriver == driver) {
+            progress.activeDriver = null;
+        }
+    }
+
+    private static void stopActiveDriver(
+            String jobId,
+            String cancelSource) {
+
+        Progress progress =
+                PROGRESS_MAP.get(jobId);
+
+        if (progress == null) {
+            return;
+        }
+
+        WebDriver driver =
+                progress.activeDriver;
+
+        if (driver == null) {
+            return;
+        }
+
+        // 중복 quit 방지: 먼저 참조를 비운다.
+        progress.activeDriver = null;
+
+        try {
+
+            driver.quit();
+
+            if ("PAGE_CLOSE".equals(cancelSource)) {
+                System.out.println(
+                        "[CANCEL-DRIVER-PAGE-CLOSE] 현재 Chrome 즉시 종료 완료"
+                );
+            } else {
+                System.out.println(
+                        "[CANCEL-DRIVER-BUTTON] 현재 Chrome 즉시 종료 완료"
+                );
+            }
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "[CANCEL-DRIVER] Chrome 종료 중 예외 무시 / "
+                    + firstLine(e.getMessage())
+            );
+        }
+    }
+
+    private static void checkDisconnectedJobs() {
+
+        try {
+
+            long now =
+                    System.currentTimeMillis();
+
+            for (Map.Entry<String, Progress> entry
+                    : PROGRESS_MAP.entrySet()) {
+
+                String jobId =
+                        entry.getKey();
+
+                Progress progress =
+                        entry.getValue();
+
+                if (progress == null
+                        || progress.finished
+                        || progress.cancelRequested) {
+                    continue;
+                }
+
+                if (now - progress.lastHeartbeatTime
+                        <= 10000L) {
+                    continue;
+                }
+
+                System.out.println(
+                        "[CANCEL-WATCHDOG-PAGE-CLOSE] "
+                        + "heartbeat 10초 단절 - 즉시 종료"
+                );
+
+                requestCancel(
+                        jobId,
+                        "PAGE_CLOSE"
+                );
+            }
+
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static String firstLine(
+            String value) {
+
+        if (value == null
+                || value.trim().length() == 0) {
+            return "";
+        }
+
+        String result = value.trim();
+        int lineBreak = result.indexOf('\n');
+
+        if (lineBreak >= 0) {
+            result = result.substring(0, lineBreak);
+        }
+
+        return result.trim();
+    }
+
+
+    public static String getCancelSource(
+            String jobId) {
+
+        Progress progress =
+                PROGRESS_MAP.get(jobId);
+
+        if (progress == null
+                || progress.cancelSource == null) {
+
+            return "";
+        }
+
+        return progress.cancelSource;
     }
 
     public static boolean isCancelRequested(
@@ -237,6 +570,7 @@ public final class HometaxProgressTracker {
         result.put("status", progress.status);
         result.put("finished", progress.finished);
         result.put("cancelRequested", progress.cancelRequested);
+        result.put("cancelSource", progress.cancelSource);
         result.put("totalCount", progress.totalCount);
         result.put("completedCount", progress.completedCount);
         result.put("currentCompany", progress.currentCompany);
@@ -258,9 +592,15 @@ public final class HometaxProgressTracker {
 
         private volatile long startTime;
 
+        private volatile long lastHeartbeatTime;
+
         private volatile boolean finished;
 
         private volatile boolean cancelRequested;
+
+        private volatile String cancelSource;
+
+        private volatile WebDriver activeDriver;
 
         private volatile String status;
 

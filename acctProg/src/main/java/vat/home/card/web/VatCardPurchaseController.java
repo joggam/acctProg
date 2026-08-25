@@ -120,6 +120,10 @@ public class VatCardPurchaseController {
     public Map<String, Object> downloadProgress(
             @RequestParam("jobId") String jobId) {
 
+        HometaxProgressTracker.heartbeat(
+                jobId
+        );
+
         return HometaxProgressTracker.getSnapshot(
                 jobId
         );
@@ -128,22 +132,28 @@ public class VatCardPurchaseController {
 
     /**
      * 홈택스 내려받기 취소 요청.
-     * 현재 처리 중인 업체는 안전하게 마무리하고 다음 업체부터 중단한다.
+     * 현재 실행 중인 Selenium/Chrome까지 즉시 종료한다.
      */
     @ResponseBody
     @RequestMapping("/vat/home/card/cancelDownload.do")
     public Map<String, Object> cancelDownload(
-            @RequestParam("jobId") String jobId) {
+            @RequestParam("jobId") String jobId,
+            @RequestParam(
+                    value = "cancelSource",
+                    required = false,
+                    defaultValue = "BUTTON")
+            String cancelSource) {
 
         HometaxProgressTracker.requestCancel(
-                jobId
+                jobId,
+                cancelSource
         );
 
         Map<String, Object> result =
                 new java.util.HashMap<String, Object>();
 
         result.put("success", Boolean.TRUE);
-        result.put("message", "취소 요청이 접수되었습니다.");
+        result.put("message", "취소 요청이 접수되어 현재 작업을 종료하고 있습니다.");
 
         return result;
     }
@@ -211,12 +221,45 @@ public class VatCardPurchaseController {
 
         for (String bizrSeqValue : selectedBizrSeq) {
 
-            // 취소 요청 시 다음 업체를 시작하지 않는다.
-            if (HometaxProgressTracker.isCancelRequested(jobId)) {
+            // 취소 버튼을 눌렀거나 처리 화면이 닫혀 heartbeat가 끊기면
+            // 다음 업체를 시작하지 않는다.
+            if (HometaxProgressTracker.isCancelRequested(jobId)
+                    || HometaxProgressTracker.isClientDisconnected(jobId)) {
 
-                System.out.println(
-                        "[DOWNLOAD-CANCEL] 사용자 취소 요청으로 다음 업체 처리 중단"
-                );
+                if (HometaxProgressTracker.isClientDisconnected(jobId)) {
+
+                    HometaxProgressTracker.requestCancel(
+                            jobId,
+                            "PAGE_CLOSE"
+                    );
+
+                    System.out.println(
+                            "[DOWNLOAD-CANCEL-PAGE-CLOSE] "
+                            + "처리 화면 종료 감지 - 다음 업체부터 중단"
+                    );
+
+                } else {
+
+                    String cancelSource =
+                            HometaxProgressTracker.getCancelSource(
+                                    jobId
+                            );
+
+                    if ("PAGE_CLOSE".equals(cancelSource)) {
+
+                        System.out.println(
+                                "[DOWNLOAD-CANCEL-PAGE-CLOSE] "
+                                + "처리 화면 종료로 다음 업체 처리 중단"
+                        );
+
+                    } else {
+
+                        System.out.println(
+                                "[DOWNLOAD-CANCEL-BUTTON] "
+                                + "취소 버튼 요청으로 다음 업체 처리 중단"
+                        );
+                    }
+                }
 
                 break;
             }
@@ -245,12 +288,25 @@ public class VatCardPurchaseController {
                         : businessInfo.getCmpnyNm()
                 );
 
-                File resultFile =
-                        vatCardPurchaseService.downloadHometaxExcel(
-                                bizrSeq,
-                                year,
-                                quarter
-                        );
+                File resultFile;
+
+                HometaxProgressTracker.setCurrentJobId(
+                        jobId
+                );
+
+                try {
+
+                    resultFile =
+                            vatCardPurchaseService.downloadHometaxExcel(
+                                    bizrSeq,
+                                    year,
+                                    quarter
+                            );
+
+                } finally {
+
+                    HometaxProgressTracker.clearCurrentJobId();
+                }
 
                 successCount++;
 
@@ -274,6 +330,22 @@ public class VatCardPurchaseController {
                 }
 
             } catch (Exception e) {
+
+                // 취소 버튼/페이지 종료로 WebDriver가 즉시 종료되며 발생한
+                // Selenium 예외는 다운로드 실패 업체로 기록하지 않는다.
+                if (HometaxProgressTracker.isCancelRequested(jobId)) {
+
+                    String cancelSource =
+                            HometaxProgressTracker.getCancelSource(jobId);
+
+                    System.out.println(
+                            "PAGE_CLOSE".equals(cancelSource)
+                            ? "[DOWNLOAD-CANCEL-PAGE-CLOSE] 현재 업체 즉시 중단"
+                            : "[DOWNLOAD-CANCEL-BUTTON] 현재 업체 즉시 중단"
+                    );
+
+                    break;
+                }
 
                 // 상위 RuntimeException 메시지만 사용하면
                 // "2026년 1분기 다운로드 실패"처럼 실제 원인이 사라질 수 있다.

@@ -18,6 +18,11 @@
     var message =
         "<c:out value='${downloadMessage}'/>";
 
+    if (status === "CANCELLED"
+            && (!message || message.length === 0)) {
+        message = "처리가 취소되었습니다.";
+    }
+
     if (window.parent
             && typeof window.parent.fn_vat_downloadFinished === "function") {
 

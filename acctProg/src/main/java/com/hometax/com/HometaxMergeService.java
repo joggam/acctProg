@@ -77,12 +77,45 @@ public class HometaxMergeService {
 
         for (HometaxMergeParameter parameter : parameters) {
 
-            // 사용자가 취소를 요청했으면 다음 업체를 시작하지 않는다.
-            if (HometaxProgressTracker.isCancelRequested(jobId)) {
+            // 취소 버튼을 눌렀거나 처리 화면이 닫혀 heartbeat가 끊기면
+            // 다음 업체를 시작하지 않는다.
+            if (HometaxProgressTracker.isCancelRequested(jobId)
+                    || HometaxProgressTracker.isClientDisconnected(jobId)) {
 
-                System.out.println(
-                        "[MERGE-CANCEL] 사용자 취소 요청으로 다음 업체 처리 중단"
-                );
+                if (HometaxProgressTracker.isClientDisconnected(jobId)) {
+
+                    HometaxProgressTracker.requestCancel(
+                            jobId,
+                            "PAGE_CLOSE"
+                    );
+
+                    System.out.println(
+                            "[MERGE-CANCEL-PAGE-CLOSE] "
+                            + "처리 화면 종료 감지 - 다음 업체부터 중단"
+                    );
+
+                } else {
+
+                    String cancelSource =
+                            HometaxProgressTracker.getCancelSource(
+                                    jobId
+                            );
+
+                    if ("PAGE_CLOSE".equals(cancelSource)) {
+
+                        System.out.println(
+                                "[MERGE-CANCEL-PAGE-CLOSE] "
+                                + "처리 화면 종료로 다음 업체 처리 중단"
+                        );
+
+                    } else {
+
+                        System.out.println(
+                                "[MERGE-CANCEL-BUTTON] "
+                                + "취소 버튼 요청으로 다음 업체 처리 중단"
+                        );
+                    }
+                }
 
                 break;
             }
@@ -104,6 +137,11 @@ public class HometaxMergeService {
                 System.out.println("======================================");
 
                 try {
+
+                    HometaxProgressTracker.setCurrentJobId(
+                            jobId
+                    );
+
                     driver = HometaxLogin.login(
                             parameter.getHometaxId(),
                             parameter.getHometaxPassword(),
@@ -112,6 +150,20 @@ public class HometaxMergeService {
                             downloadDir
                     );
                 } catch (Exception loginException) {
+
+                    if (HometaxProgressTracker.isCancelRequested(jobId)) {
+
+                        String cancelSource =
+                                HometaxProgressTracker.getCancelSource(jobId);
+
+                        System.out.println(
+                                "PAGE_CLOSE".equals(cancelSource)
+                                ? "[MERGE-CANCEL-PAGE-CLOSE] 로그인 중 현재 업체 즉시 중단"
+                                : "[MERGE-CANCEL-BUTTON] 로그인 중 현재 업체 즉시 중단"
+                        );
+
+                        break;
+                    }
 
                     String message = getDetailedLoginFailReason(loginException);
 
@@ -165,6 +217,20 @@ public class HometaxMergeService {
 
             } catch (Exception e) {
 
+                if (HometaxProgressTracker.isCancelRequested(jobId)) {
+
+                    String cancelSource =
+                            HometaxProgressTracker.getCancelSource(jobId);
+
+                    System.out.println(
+                            "PAGE_CLOSE".equals(cancelSource)
+                            ? "[MERGE-CANCEL-PAGE-CLOSE] 다운로드 중 현재 업체 즉시 중단"
+                            : "[MERGE-CANCEL-BUTTON] 다운로드 중 현재 업체 즉시 중단"
+                    );
+
+                    break;
+                }
+
                 String message = getDetailedDownloadFailReason(e);
 
                 downloadFailMessages.add(
@@ -179,6 +245,12 @@ public class HometaxMergeService {
                 );
 
             } finally {
+
+                HometaxProgressTracker.unregisterDriver(
+                        jobId,
+                        driver
+                );
+
                 if (driver != null) {
                     try {
                         driver.quit();
@@ -187,9 +259,14 @@ public class HometaxMergeService {
                     }
                 }
 
-                HometaxProgressTracker.completeOne(
-                        jobId
-                );
+                HometaxProgressTracker.clearCurrentJobId();
+
+                // 취소된 현재 업체는 성공/실패 처리 완료 건수로 올리지 않는다.
+                if (!HometaxProgressTracker.isCancelRequested(jobId)) {
+                    HometaxProgressTracker.completeOne(
+                            jobId
+                    );
+                }
             }
         }
 

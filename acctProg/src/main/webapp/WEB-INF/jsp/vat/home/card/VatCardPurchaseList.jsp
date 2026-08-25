@@ -514,6 +514,8 @@ function fn_vat_downloadMerged() {
 
 
 var vatProgressTimer = null;
+var vatDownloadRunning = false;
+var vatDownloadFinishedNormally = false;
 
 function fn_vat_createJobId() {
 
@@ -610,6 +612,9 @@ function fn_vat_hideLoading() {
 }
 
 function fn_vat_startProgressPolling(jobId) {
+
+    vatDownloadRunning = true;
+    vatDownloadFinishedNormally = false;
 
     fn_vat_stopProgressPolling();
 
@@ -851,7 +856,7 @@ function fn_vat_cancelDownload() {
     }
 
     if (!confirm(
-            "현재 처리 중인 업체까지만 마친 뒤 다운로드를 중단하시겠습니까?"
+            "현재 진행 중인 홈택스 작업을 즉시 중단하시겠습니까?"
         )) {
 
         return;
@@ -876,7 +881,7 @@ function fn_vat_cancelDownload() {
 
         messageElement.innerHTML =
             "취소 요청을 처리하고 있습니다.<br>"
-            + "현재 업체 처리 후 중단됩니다.";
+            + "현재 Chrome 작업을 종료하고 있습니다.";
     }
 
     var xhr =
@@ -896,6 +901,7 @@ function fn_vat_cancelDownload() {
     xhr.send(
         "jobId="
         + encodeURIComponent(jobId)
+        + "&cancelSource=BUTTON"
     );
 }
 
@@ -911,6 +917,9 @@ function fn_vat_cancelDownload() {
 function fn_vat_downloadFinished(
         status,
         message) {
+
+    vatDownloadFinishedNormally = true;
+    vatDownloadRunning = false;
 
     fn_vat_stopProgressPolling();
 
@@ -970,6 +979,63 @@ function fn_vat_downloadFinished(
         : "처리 중 오류가 발생했습니다."
     );
 }
+
+
+/**
+ * 사용자가 처리 중인 화면/탭을 닫거나 다른 페이지로 이동하는 경우
+ * 서버에 즉시 취소 신호를 보낸다.
+ *
+ * sendBeacon이 전달되지 않는 브라우저 종료/강제종료 상황은
+ * 서버 heartbeat(10초 timeout)가 추가로 감지한다.
+ */
+window.addEventListener(
+    "pagehide",
+    function() {
+
+        if (!vatDownloadRunning
+                || vatDownloadFinishedNormally) {
+
+            return;
+        }
+
+        var jobIdElement =
+            document.getElementById(
+                "vatDownloadJobId"
+            );
+
+        var jobId =
+            jobIdElement
+            ? jobIdElement.value
+            : "";
+
+        if (!jobId) {
+            return;
+        }
+
+        try {
+
+            var data =
+                new URLSearchParams();
+
+            data.append(
+                "jobId",
+                jobId
+            );
+
+            data.append(
+                "cancelSource",
+                "PAGE_CLOSE"
+            );
+
+            navigator.sendBeacon(
+                "<c:url value='/vat/home/card/cancelDownload.do'/>",
+                data
+            );
+
+        } catch (e) {
+        }
+    }
+);
 
 
 function fn_vat_excelDownload() {

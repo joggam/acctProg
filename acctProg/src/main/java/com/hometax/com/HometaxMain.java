@@ -39,6 +39,10 @@ public class HometaxMain {
                     quarter
             );
 
+            if (HometaxProgressTracker.isCurrentJobCancelled()) {
+                throw new RuntimeException("홈택스 작업 취소됨");
+            }
+
             driver = HometaxLogin.login(
                     hometaxId,
                     hometaxPassword,
@@ -46,6 +50,10 @@ public class HometaxMain {
                     jumin7th,
                     DOWNLOAD_DIR
             );
+
+            if (HometaxProgressTracker.isCurrentJobCancelled()) {
+                throw new RuntimeException("홈택스 작업 취소됨");
+            }
 
             HometaxService hometax =
                     new HometaxService(
@@ -60,12 +68,20 @@ public class HometaxMain {
                             businessNumber
                     );
 
+            if (HometaxProgressTracker.isCurrentJobCancelled()) {
+                throw new RuntimeException("홈택스 작업 취소됨");
+            }
+
             // 기존 내려받기 기능은 기존 로직 그대로 유지
             return ExcelTitleCopy.copyExcelByTitle(
                     excelFile
             );
 
         } finally {
+            HometaxProgressTracker.unregisterCurrentDriver(
+                    driver
+            );
+
             if (driver != null) {
                 try {
                     driver.quit();

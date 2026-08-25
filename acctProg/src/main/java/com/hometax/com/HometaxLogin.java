@@ -128,6 +128,18 @@ public class HometaxLogin {
             driver =
                     new ChromeDriver(options);
 
+            // 취소 버튼/페이지 종료 시 현재 Chrome을 즉시 종료할 수 있도록
+            // Chrome 생성 직후 현재 다운로드 jobId와 연결한다.
+            HometaxProgressTracker.registerCurrentDriver(
+                    driver
+            );
+
+            if (HometaxProgressTracker.isCurrentJobCancelled()) {
+                throw new RuntimeException(
+                        "홈택스 작업 취소됨"
+                );
+            }
+
 
             /*
              * Headless Chrome에서도 다운로드 허용
@@ -350,16 +362,24 @@ public class HometaxLogin {
 
         } catch (Exception e) {
 
+            HometaxProgressTracker.unregisterCurrentDriver(
+                    driver
+            );
+
             if (driver != null) {
 
                 try {
-
                     driver.quit();
-
                 } catch (Exception ignored) {
                 }
             }
 
+            if (HometaxProgressTracker.isCurrentJobCancelled()) {
+                throw new RuntimeException(
+                        "홈택스 작업 취소됨",
+                        e
+                );
+            }
 
             throw new RuntimeException(
                     "홈택스 로그인 실패",
