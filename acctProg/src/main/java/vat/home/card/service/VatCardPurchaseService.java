@@ -13,6 +13,6 @@ public interface VatCardPurchaseService {
 
     File downloadHometaxExcel(Long bizrSeq, int year, int quarter) throws Exception;
 
-    File downloadMergedHometaxExcel(
+    List<File> downloadMergedHometaxExcel(
             String[] selectedBizrSeq, int year, int quarter) throws Exception;
 }

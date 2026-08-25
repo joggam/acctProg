@@ -170,51 +170,16 @@ public class HometaxLogin {
 
 
             // =====================================================
-            // 2. 상단 로그인
-            // =====================================================
-
-            WebElement mainLogin =
-                    wait.until(
-                        ExpectedConditions
-                            .elementToBeClickable(
-                                By.id(
-                                    "mf_wfHeader_group1503"
-                                )
-                            )
-                    );
-
-            mainLogin.click();
-
-
-            // =====================================================
-            // 3. 아이디 로그인 탭
-            // =====================================================
-
-            WebElement idLoginTab =
-                    wait.until(
-                        ExpectedConditions
-                            .elementToBeClickable(
-                                By.id(
-                                    "mf_txppWframe_anchor15"
-                                )
-                            )
-                    );
-
-            idLoginTab.click();
-
-
-            // =====================================================
-            // 4. 아이디 입력
+            // 2~4. 로그인 화면 진입 + ID 입력
+            //
+            // WebSquare 로딩 문제로 ID 입력란이 30초 내 표시되지 않으면
+            // 홈택스 첫 화면부터 1회 자동 재시도한다.
             // =====================================================
 
             WebElement idInput =
-                    wait.until(
-                        ExpectedConditions
-                            .visibilityOfElementLocated(
-                                By.id(
-                                    "mf_txppWframe_iptUserId"
-                                )
-                            )
+                    openIdLoginAndWaitForIdInput(
+                            driver,
+                            wait
                     );
 
             idInput.clear();
@@ -224,7 +189,7 @@ public class HometaxLogin {
             );
 
 
-            // =====================================================
+// =====================================================
             // 5. 비밀번호 입력
             // =====================================================
 
@@ -385,4 +350,120 @@ public class HometaxLogin {
             );
         }
     }
+
+    /**
+     * 홈택스 ID 로그인 화면으로 진입한다.
+     *
+     * 1차 시도에서 mf_txppWframe_iptUserId가 표시되지 않으면
+     * 홈택스 메인으로 다시 이동한 뒤 로그인 화면 진입을 1회 재시도한다.
+     */
+    private static WebElement openIdLoginAndWaitForIdInput(
+            WebDriver driver,
+            WebDriverWait wait) {
+
+        Exception lastException = null;
+
+        for (int attempt = 1; attempt <= 2; attempt++) {
+
+            try {
+
+                if (attempt > 1) {
+
+                    System.out.println(
+                            "[LOGIN-RETRY] 로그인 화면 로딩 실패로 1회 재시도"
+                    );
+
+                    driver.get(HOMETAX_URL);
+                    sleep(1000);
+                }
+
+                WebElement mainLogin =
+                        wait.until(
+                            ExpectedConditions
+                                .elementToBeClickable(
+                                    By.id(
+                                        "mf_wfHeader_group1503"
+                                    )
+                                )
+                        );
+
+                mainLogin.click();
+
+                WebElement idLoginTab =
+                        wait.until(
+                            ExpectedConditions
+                                .elementToBeClickable(
+                                    By.id(
+                                        "mf_txppWframe_anchor15"
+                                    )
+                                )
+                        );
+
+                idLoginTab.click();
+
+                WebElement idInput =
+                        wait.until(
+                            ExpectedConditions
+                                .visibilityOfElementLocated(
+                                    By.id(
+                                        "mf_txppWframe_iptUserId"
+                                    )
+                                )
+                        );
+
+                if (attempt > 1) {
+                    System.out.println(
+                            "[LOGIN-RETRY-SUCCESS] ID 입력란 재로딩 성공"
+                    );
+                }
+
+                return idInput;
+
+            } catch (Exception e) {
+
+                lastException = e;
+
+                System.out.println(
+                        "[LOGIN-LOAD-FAIL] "
+                        + attempt
+                        + "차 시도 실패 / "
+                        + firstLine(e.getMessage())
+                );
+            }
+        }
+
+        throw new RuntimeException(
+                "홈택스 로그인 화면 로딩 실패(ID 입력란 미표시)",
+                lastException
+        );
+    }
+
+
+    private static String firstLine(String value) {
+
+        if (value == null || value.trim().length() == 0) {
+            return "";
+        }
+
+        String result = value.trim();
+
+        int lineBreak = result.indexOf('\n');
+
+        if (lineBreak >= 0) {
+            result = result.substring(0, lineBreak);
+        }
+
+        return result.trim();
+    }
+
+
+    private static void sleep(long millis) {
+
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
 }

@@ -61,7 +61,7 @@ public class VatCardPurchaseServiceImpl extends EgovAbstractServiceImpl
     }
 
     @Override
-    public File downloadMergedHometaxExcel(
+    public List<File> downloadMergedHometaxExcel(
             String[] selectedBizrSeq,
             int year,
             int quarter) throws Exception {

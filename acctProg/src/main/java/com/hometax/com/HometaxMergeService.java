@@ -14,12 +14,16 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.openqa.selenium.WebDriver;
 
 /**
@@ -44,7 +48,7 @@ public class HometaxMergeService {
     private HometaxMergeService() {
     }
 
-    public static File execute(
+    public static List<File> execute(
             List<HometaxMergeParameter> parameters,
             int year,
             int quarter,
@@ -65,6 +69,8 @@ public class HometaxMergeService {
         }
 
         List<File> downloadedFiles = new ArrayList<File>();
+        int totalSuccessRowCount = 0;
+        List<String> successMessages = new ArrayList<String>();
         List<String> loginFailMessages = new ArrayList<String>();
         List<String> downloadFailMessages = new ArrayList<String>();
 
@@ -91,7 +97,7 @@ public class HometaxMergeService {
                     );
                 } catch (Exception loginException) {
 
-                    String message = rootMessage(loginException);
+                    String message = getDetailedLoginFailReason(loginException);
 
                     loginFailMessages.add(
                             buildLoginFailMessage(parameter, message)
@@ -125,6 +131,22 @@ public class HometaxMergeService {
 
                 downloadedFiles.add(downloadedFile);
 
+                int rowCount =
+                        countExcelDataRows(
+                                downloadedFile
+                        );
+
+                if (rowCount >= 0) {
+                    totalSuccessRowCount += rowCount;
+                }
+
+                successMessages.add(
+                        buildSuccessMessage(
+                                parameter,
+                                rowCount
+                        )
+                );
+
             } catch (Exception e) {
 
                 String message = getDetailedDownloadFailReason(e);
@@ -149,6 +171,23 @@ public class HometaxMergeService {
                     }
                 }
             }
+        }
+
+        File successFile = null;
+
+        if (!successMessages.isEmpty()) {
+            successFile = writeSuccessText(
+                    successMessages,
+                    year,
+                    quarter,
+                    downloadFolder,
+                    totalSuccessRowCount
+            );
+
+            System.out.println(
+                    "[MERGE-SUCCESS-TXT] "
+                    + successFile.getAbsolutePath()
+            );
         }
 
         File loginFailFile = null;
@@ -208,22 +247,22 @@ public class HometaxMergeService {
             );
         }
 
-        File mergedFile = mergeExcelFiles(
+        List<File> mergedFiles = mergeExcelFiles(
                 downloadedFiles,
                 year,
                 quarter,
                 downloadFolder
         );
 
-        // 최종 병합 성공 후 개별 홈택스 다운로드 파일 제거.
-        // 사용자가 보는 결과 파일은 병합 XLS 한 개만 남긴다.
+        // 최종 병합 성공 후 개별 홈택스 다운로드 원본 XLS 제거.
+        // 최종 결과는 분할된 XLSX 파일들만 남긴다.
         for (File file : downloadedFiles) {
             if (file == null) {
                 continue;
             }
 
             try {
-                if (file.exists() && !sameFile(file, mergedFile)) {
+                if (file.exists()) {
                     boolean deleted = file.delete();
                     System.out.println(
                             "[MERGE-CLEAN] "
@@ -252,8 +291,169 @@ public class HometaxMergeService {
             }
         }
 
-        return mergedFile;
+        return mergedFiles;
     }
+
+    /**
+     * 분류내려받기에서 성공한 업체 정보를 UTF-8 TXT로 저장한다.
+     * 비밀번호와 주민등록번호는 기록하지 않는다.
+     */
+    private static File writeSuccessText(
+            List<String> successMessages,
+            int year,
+            int quarter,
+            File downloadFolder,
+            int totalSuccessRowCount) throws Exception {
+
+        String timestamp =
+                new SimpleDateFormat("yyyyMMdd_HHmmss")
+                        .format(new Date());
+
+        File outputFile = new File(
+                downloadFolder,
+                "홈택스_분류내려받기성공_"
+                + year
+                + "년_"
+                + quarter
+                + "분기_"
+                + timestamp
+                + ".txt"
+        );
+
+        try (
+                BufferedWriter writer =
+                        new BufferedWriter(
+                                new OutputStreamWriter(
+                                        new FileOutputStream(outputFile),
+                                        StandardCharsets.UTF_8
+                                )
+                        )
+        ) {
+            writer.write('\uFEFF');
+            writer.write("홈택스 분류내려받기 성공 업체");
+            writer.newLine();
+            writer.write("조회기간 : "
+                    + year + "년 " + quarter + "분기");
+            writer.newLine();
+            writer.write("성공건수 : "
+                    + successMessages.size() + "건");
+            writer.newLine();
+            writer.write(
+                    "============================================================"
+            );
+            writer.newLine();
+            writer.write("상호명 | 아이디 | 사업자등록번호 | 다운로드 ROW수");
+            writer.newLine();
+            writer.write(
+                    "============================================================"
+            );
+            writer.newLine();
+
+            for (String successMessage : successMessages) {
+                writer.write(successMessage);
+                writer.newLine();
+            }
+
+            writer.write(
+                    "============================================================"
+            );
+            writer.newLine();
+            writer.write(
+                    "총 성공 업체 : "
+                    + successMessages.size()
+                    + "건"
+            );
+            writer.newLine();
+            writer.write(
+                    "총 다운로드 ROW수 : "
+                    + totalSuccessRowCount
+                    + "건"
+            );
+            writer.newLine();
+        }
+
+        return outputFile;
+    }
+
+    private static String buildSuccessMessage(
+            HometaxMergeParameter parameter,
+            int rowCount) {
+
+        String companyName = parameter.getCompanyName();
+
+        if (companyName == null || companyName.trim().length() == 0) {
+            companyName = "-";
+        }
+
+        String hometaxId = parameter.getHometaxId();
+
+        if (hometaxId == null || hometaxId.trim().length() == 0) {
+            hometaxId = "-";
+        }
+
+        String rowCountText =
+                rowCount >= 0
+                ? rowCount + "건"
+                : "확인실패";
+
+        return companyName
+                + " | "
+                + hometaxId
+                + " | "
+                + formatBusinessNumber(parameter.getBusinessNumber())
+                + " | "
+                + rowCountText;
+    }
+
+
+    /**
+     * 홈택스 XLS의 데이터 행 수를 계산한다.
+     * 병합 로직과 동일하게 3행(index 2)부터 DATA로 보고 빈 행은 제외한다.
+     * 오류가 발생해도 다운로드 성공 업체를 실패 처리하지 않도록 -1을 반환한다.
+     */
+    private static int countExcelDataRows(File excelFile) {
+
+        if (excelFile == null || !excelFile.exists()) {
+            return -1;
+        }
+
+        try (
+                FileInputStream fis =
+                        new FileInputStream(excelFile);
+                Workbook workbook =
+                        new HSSFWorkbook(fis)
+        ) {
+            Sheet sheet = workbook.getSheetAt(0);
+            int count = 0;
+
+            for (int rowIndex = SOURCE_DATA_START_ROW;
+                 rowIndex <= sheet.getLastRowNum();
+                 rowIndex++) {
+
+                Row row = sheet.getRow(rowIndex);
+
+                if (row == null || isEmptyRow(row)) {
+                    continue;
+                }
+
+                count++;
+            }
+
+            return count;
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "[MERGE-ROW-COUNT-FAIL] "
+                    + excelFile.getAbsolutePath()
+                    + " / "
+                    + e.getMessage()
+            );
+
+            return -1;
+        }
+    }
+
 
     /**
      * 로그인 성공 후 다운로드 단계에서 실패한 업체를 UTF-8 TXT로 저장한다.
@@ -609,6 +809,10 @@ public class HometaxMergeService {
 
         String value = message.trim();
 
+        if (value.contains("홈택스 로그인 화면 로딩 실패(ID 입력란 미표시)")) {
+            return "홈택스 로그인 화면 로딩 실패(ID 입력란 미표시)";
+        }
+
         if (value.contains("입력하신 아이디, 비밀번호 또는 주민번호가 정확하지 않습니다")) {
             return "아이디/비밀번호/주민번호 불일치";
         }
@@ -682,46 +886,58 @@ public class HometaxMergeService {
                 + value.substring(5);
     }
 
-    private static File mergeExcelFiles(
+    /**
+     * 분류내려받기 최종 병합.
+     *
+     * - 홈택스 개별 원본은 .xls 그대로 읽는다.
+     * - 최종 결과만 .xlsx로 생성한다.
+     * - XLSX 한 파일당 DATA 최대 1,000,000 ROW로 분할한다.
+     * - 결과 파일명은 ..._001.xlsx, ..._002.xlsx 형식이다.
+     * - 각 분할 파일에는 첫 번째 원본의 상단 2행(헤더)을 다시 복사한다.
+     */
+    private static List<File> mergeExcelFiles(
             List<File> sourceFiles,
             int year,
             int quarter,
             File downloadFolder) throws Exception {
 
+        final int MAX_DATA_ROWS_PER_XLSX = 1000000;
+
         String timestamp =
                 new SimpleDateFormat("yyyyMMdd_HHmmss")
                         .format(new Date());
 
-        File outputFile = new File(
-                downloadFolder,
-                "분류내려받기_"
-                + year
-                + "년_"
-                + quarter
-                + "분기_"
-                + timestamp
-                + ".xls"
-        );
+        List<File> outputFiles =
+                new ArrayList<File>();
 
-        File firstFile = sourceFiles.get(0);
+        if (sourceFiles == null || sourceFiles.isEmpty()) {
+            return outputFiles;
+        }
 
-        try (
-                FileInputStream firstFis =
-                        new FileInputStream(firstFile);
-                Workbook targetWorkbook =
-                        new HSSFWorkbook(firstFis)
-        ) {
+        // 첫 번째 원본 XLS의 헤더 2행을 각 분할 XLSX에 반복 사용한다.
+        File headerSourceFile = sourceFiles.get(0);
 
-            Sheet targetSheet = targetWorkbook.getSheetAt(0);
-            int targetRowIndex = targetSheet.getLastRowNum() + 1;
+        MergeXlsxPart currentPart =
+                createNewXlsxPart(
+                        headerSourceFile,
+                        downloadFolder,
+                        year,
+                        quarter,
+                        timestamp,
+                        1
+                );
 
-            // 첫 번째 파일은 워크북 전체를 기준 파일로 사용한다.
-            // 두 번째 파일부터 3행(index 2) 이후의 DATA만 이어 붙인다.
-            for (int fileIndex = 1;
+        int partIndex = 1;
+        int currentDataRowCount = 0;
+
+        try {
+
+            for (int fileIndex = 0;
                  fileIndex < sourceFiles.size();
                  fileIndex++) {
 
-                File sourceFile = sourceFiles.get(fileIndex);
+                File sourceFile =
+                        sourceFiles.get(fileIndex);
 
                 try (
                         FileInputStream sourceFis =
@@ -730,90 +946,608 @@ public class HometaxMergeService {
                                 new HSSFWorkbook(sourceFis)
                 ) {
 
-                    Sheet sourceSheet = sourceWorkbook.getSheetAt(0);
+                    Sheet sourceSheet =
+                            sourceWorkbook.getSheetAt(0);
+
                     Map<Short, CellStyle> styleMap =
                             new HashMap<Short, CellStyle>();
+
+                    Map<Short, Font> fontMap =
+                            new HashMap<Short, Font>();
 
                     for (int sourceRowIndex = SOURCE_DATA_START_ROW;
                          sourceRowIndex <= sourceSheet.getLastRowNum();
                          sourceRowIndex++) {
 
-                        Row sourceRow = sourceSheet.getRow(sourceRowIndex);
+                        Row sourceRow =
+                                sourceSheet.getRow(sourceRowIndex);
 
-                        if (sourceRow == null || isEmptyRow(sourceRow)) {
+                        if (sourceRow == null
+                                || isEmptyRow(sourceRow)) {
+
                             continue;
                         }
 
-                        Row targetRow = targetSheet.createRow(targetRowIndex++);
-                        targetRow.setHeight(sourceRow.getHeight());
+                        // 현재 XLSX가 100만 DATA ROW에 도달하면
+                        // 저장 후 다음 002, 003... 파일을 만든다.
+                        if (currentDataRowCount
+                                >= MAX_DATA_ROWS_PER_XLSX) {
 
-                        short firstCell = sourceRow.getFirstCellNum();
-                        short lastCell = sourceRow.getLastCellNum();
-
-                        if (firstCell < 0 || lastCell < 0) {
-                            continue;
-                        }
-
-                        for (int col = firstCell; col < lastCell; col++) {
-                            Cell sourceCell = sourceRow.getCell(col);
-                            if (sourceCell == null) {
-                                continue;
-                            }
-
-                            Cell targetCell = targetRow.createCell(col);
-
-                            copyCellStyle(
-                                    sourceCell,
-                                    targetCell,
-                                    targetWorkbook,
-                                    styleMap
+                            closeAndSaveXlsxPart(
+                                    currentPart
                             );
 
-                            copyCellValue(sourceCell, targetCell);
+                            outputFiles.add(
+                                    currentPart.outputFile
+                            );
+
+                            partIndex++;
+
+                            currentPart =
+                                    createNewXlsxPart(
+                                            headerSourceFile,
+                                            downloadFolder,
+                                            year,
+                                            quarter,
+                                            timestamp,
+                                            partIndex
+                                    );
+
+                            currentDataRowCount = 0;
+
+                            styleMap =
+                                    new HashMap<Short, CellStyle>();
+
+                            fontMap =
+                                    new HashMap<Short, Font>();
                         }
+
+                        Row targetRow =
+                                currentPart.sheet.createRow(
+                                        currentPart.nextRowIndex++
+                                );
+
+                        targetRow.setHeight(
+                                sourceRow.getHeight()
+                        );
+
+                        copyRowToXlsx(
+                                sourceRow,
+                                targetRow,
+                                sourceWorkbook,
+                                currentPart.xssfWorkbook,
+                                styleMap,
+                                fontMap
+                        );
+
+                        currentDataRowCount++;
                     }
                 }
             }
 
-            try (
-                    FileOutputStream fos =
-                            new FileOutputStream(outputFile)
-            ) {
-                targetWorkbook.write(fos);
+            closeAndSaveXlsxPart(
+                    currentPart
+            );
+
+            outputFiles.add(
+                    currentPart.outputFile
+            );
+
+        } catch (Exception e) {
+
+            if (currentPart != null) {
+                try {
+                    currentPart.workbook.close();
+                } catch (Exception ignored) {
+                }
+
+                try {
+                    currentPart.workbook.dispose();
+                } catch (Exception ignored) {
+                }
+            }
+
+            throw e;
+        }
+
+
+        System.out.println();
+        System.out.println(
+                "======================================"
+        );
+        System.out.println(
+                "[MERGE-SUCCESS] 분류내려받기 XLSX 병합 완료"
+        );
+        System.out.println(
+                "생성 파일 수 = "
+                + outputFiles.size()
+        );
+
+        for (File outputFile : outputFiles) {
+
+            System.out.println(
+                    "최종 파일 = "
+                    + outputFile.getAbsolutePath()
+            );
+        }
+
+        System.out.println(
+                "======================================"
+        );
+
+        return outputFiles;
+    }
+
+
+    private static MergeXlsxPart createNewXlsxPart(
+            File headerSourceFile,
+            File downloadFolder,
+            int year,
+            int quarter,
+            String timestamp,
+            int partIndex) throws Exception {
+
+        String index =
+                String.format(
+                        "%03d",
+                        partIndex
+                );
+
+        File outputFile =
+                new File(
+                        downloadFolder,
+                        "분류내려받기_"
+                        + year
+                        + "년_"
+                        + quarter
+                        + "분기_"
+                        + timestamp
+                        + "_"
+                        + index
+                        + ".xlsx"
+                );
+
+        XSSFWorkbook xssfWorkbook =
+                new XSSFWorkbook();
+
+        // 메모리에 최근 500행만 유지.
+        // 오래된 행은 임시파일로 내려 대용량 XLSX 메모리 사용량을 줄인다.
+        SXSSFWorkbook workbook =
+                new SXSSFWorkbook(
+                        xssfWorkbook,
+                        500
+                );
+
+        workbook.setCompressTempFiles(true);
+
+        Sheet targetSheet =
+                workbook.createSheet(
+                        "분류내려받기"
+                );
+
+        MergeXlsxPart part =
+                new MergeXlsxPart();
+
+        part.outputFile = outputFile;
+        part.workbook = workbook;
+        part.xssfWorkbook = xssfWorkbook;
+        part.sheet = targetSheet;
+        part.nextRowIndex = 0;
+
+
+        // 첫 번째 원본 XLS에서 상단 헤더 2행과 열 너비를 복사한다.
+        try (
+                FileInputStream fis =
+                        new FileInputStream(
+                                headerSourceFile
+                        );
+                Workbook headerWorkbook =
+                        new HSSFWorkbook(fis)
+        ) {
+
+            Sheet headerSheet =
+                    headerWorkbook.getSheetAt(0);
+
+            int maxColumn =
+                    findMaxColumnCount(
+                            headerSheet
+                    );
+
+            for (int col = 0;
+                 col < maxColumn;
+                 col++) {
+
+                targetSheet.setColumnWidth(
+                        col,
+                        headerSheet.getColumnWidth(col)
+                );
+            }
+
+            Map<Short, CellStyle> styleMap =
+                    new HashMap<Short, CellStyle>();
+
+            Map<Short, Font> fontMap =
+                    new HashMap<Short, Font>();
+
+            int headerLastRow =
+                    Math.min(
+                            SOURCE_DATA_START_ROW - 1,
+                            headerSheet.getLastRowNum()
+                    );
+
+            for (int rowIndex = 0;
+                 rowIndex <= headerLastRow;
+                 rowIndex++) {
+
+                Row sourceRow =
+                        headerSheet.getRow(rowIndex);
+
+                if (sourceRow == null) {
+                    part.nextRowIndex++;
+                    continue;
+                }
+
+                Row targetRow =
+                        targetSheet.createRow(
+                                part.nextRowIndex++
+                        );
+
+                targetRow.setHeight(
+                        sourceRow.getHeight()
+                );
+
+                copyRowToXlsx(
+                        sourceRow,
+                        targetRow,
+                        headerWorkbook,
+                        xssfWorkbook,
+                        styleMap,
+                        fontMap
+                );
+            }
+
+
+            // 헤더 영역 안에 포함된 병합 셀만 복사한다.
+            for (int i = 0;
+                 i < headerSheet.getNumMergedRegions();
+                 i++) {
+
+                CellRangeAddress region =
+                        headerSheet.getMergedRegion(i);
+
+                if (region.getLastRow()
+                        < SOURCE_DATA_START_ROW) {
+
+                    targetSheet.addMergedRegion(
+                            new CellRangeAddress(
+                                    region.getFirstRow(),
+                                    region.getLastRow(),
+                                    region.getFirstColumn(),
+                                    region.getLastColumn()
+                            )
+                    );
+                }
             }
         }
 
-        System.out.println();
-        System.out.println("======================================");
-        System.out.println("[MERGE-SUCCESS] 분류내려받기 병합 완료");
-        System.out.println("최종 파일 = " + outputFile.getAbsolutePath());
-        System.out.println("======================================");
-
-        return outputFile;
+        return part;
     }
 
-    private static void copyCellStyle(
+
+    private static void closeAndSaveXlsxPart(
+            MergeXlsxPart part) throws Exception {
+
+        if (part == null) {
+            return;
+        }
+
+        try (
+                FileOutputStream fos =
+                        new FileOutputStream(
+                                part.outputFile
+                        )
+        ) {
+
+            part.workbook.write(
+                    fos
+            );
+
+        } finally {
+
+            try {
+                part.workbook.close();
+            } finally {
+                part.workbook.dispose();
+            }
+        }
+
+        System.out.println(
+                "[MERGE-XLSX-PART] "
+                + part.outputFile.getAbsolutePath()
+        );
+    }
+
+
+    private static void copyRowToXlsx(
+            Row sourceRow,
+            Row targetRow,
+            Workbook sourceWorkbook,
+            XSSFWorkbook targetWorkbook,
+            Map<Short, CellStyle> styleMap,
+            Map<Short, Font> fontMap) {
+
+        short firstCell =
+                sourceRow.getFirstCellNum();
+
+        short lastCell =
+                sourceRow.getLastCellNum();
+
+        if (firstCell < 0
+                || lastCell < 0) {
+
+            return;
+        }
+
+        for (int col = firstCell;
+             col < lastCell;
+             col++) {
+
+            Cell sourceCell =
+                    sourceRow.getCell(col);
+
+            if (sourceCell == null) {
+                continue;
+            }
+
+            Cell targetCell =
+                    targetRow.createCell(col);
+
+            copyCellStyleToXlsx(
+                    sourceCell,
+                    targetCell,
+                    sourceWorkbook,
+                    targetWorkbook,
+                    styleMap,
+                    fontMap
+            );
+
+            copyCellValue(
+                    sourceCell,
+                    targetCell
+            );
+        }
+    }
+
+
+    private static int findMaxColumnCount(
+            Sheet sheet) {
+
+        int maxColumn = 0;
+
+        for (int rowIndex = 0;
+             rowIndex <= sheet.getLastRowNum();
+             rowIndex++) {
+
+            Row row =
+                    sheet.getRow(rowIndex);
+
+            if (row == null) {
+                continue;
+            }
+
+            short lastCell =
+                    row.getLastCellNum();
+
+            if (lastCell > maxColumn) {
+                maxColumn = lastCell;
+            }
+        }
+
+        return maxColumn;
+    }
+
+
+    private static void copyCellStyleToXlsx(
             Cell sourceCell,
             Cell targetCell,
-            Workbook targetWorkbook,
-            Map<Short, CellStyle> styleMap) {
+            Workbook sourceWorkbook,
+            XSSFWorkbook targetWorkbook,
+            Map<Short, CellStyle> styleMap,
+            Map<Short, Font> fontMap) {
 
-        CellStyle sourceStyle = sourceCell.getCellStyle();
+        CellStyle sourceStyle =
+                sourceCell.getCellStyle();
+
         if (sourceStyle == null) {
             return;
         }
 
-        short styleIndex = sourceStyle.getIndex();
-        CellStyle targetStyle = styleMap.get(styleIndex);
+        short styleIndex =
+                sourceStyle.getIndex();
+
+        CellStyle targetStyle =
+                styleMap.get(styleIndex);
 
         if (targetStyle == null) {
-            targetStyle = targetWorkbook.createCellStyle();
-            targetStyle.cloneStyleFrom(sourceStyle);
-            styleMap.put(styleIndex, targetStyle);
+
+            targetStyle =
+                    targetWorkbook.createCellStyle();
+
+            targetStyle.setAlignment(
+                    sourceStyle.getAlignment()
+            );
+
+            targetStyle.setVerticalAlignment(
+                    sourceStyle.getVerticalAlignment()
+            );
+
+            targetStyle.setBorderTop(
+                    sourceStyle.getBorderTop()
+            );
+
+            targetStyle.setBorderBottom(
+                    sourceStyle.getBorderBottom()
+            );
+
+            targetStyle.setBorderLeft(
+                    sourceStyle.getBorderLeft()
+            );
+
+            targetStyle.setBorderRight(
+                    sourceStyle.getBorderRight()
+            );
+
+            targetStyle.setTopBorderColor(
+                    sourceStyle.getTopBorderColor()
+            );
+
+            targetStyle.setBottomBorderColor(
+                    sourceStyle.getBottomBorderColor()
+            );
+
+            targetStyle.setLeftBorderColor(
+                    sourceStyle.getLeftBorderColor()
+            );
+
+            targetStyle.setRightBorderColor(
+                    sourceStyle.getRightBorderColor()
+            );
+
+            targetStyle.setFillPattern(
+                    sourceStyle.getFillPattern()
+            );
+
+            targetStyle.setFillForegroundColor(
+                    sourceStyle.getFillForegroundColor()
+            );
+
+            targetStyle.setFillBackgroundColor(
+                    sourceStyle.getFillBackgroundColor()
+            );
+
+            targetStyle.setWrapText(
+                    sourceStyle.getWrapText()
+            );
+
+            targetStyle.setRotation(
+                    sourceStyle.getRotation()
+            );
+
+            targetStyle.setIndention(
+                    sourceStyle.getIndention()
+            );
+
+            targetStyle.setLocked(
+                    sourceStyle.getLocked()
+            );
+
+            targetStyle.setHidden(
+                    sourceStyle.getHidden()
+            );
+
+
+            String dataFormatString =
+                    sourceStyle.getDataFormatString();
+
+            if (dataFormatString != null
+                    && dataFormatString.trim().length() > 0) {
+
+                targetStyle.setDataFormat(
+                        targetWorkbook
+                                .createDataFormat()
+                                .getFormat(
+                                        dataFormatString
+                                )
+                );
+            }
+
+
+            short sourceFontIndex =
+                    (short) sourceStyle
+                            .getFontIndexAsInt();
+
+            Font targetFont =
+                    fontMap.get(
+                            sourceFontIndex
+                    );
+
+            if (targetFont == null) {
+
+                Font sourceFont =
+                        sourceWorkbook.getFontAt(
+                                sourceFontIndex
+                        );
+
+                targetFont =
+                        targetWorkbook.createFont();
+
+                targetFont.setFontName(
+                        sourceFont.getFontName()
+                );
+
+                targetFont.setFontHeight(
+                        sourceFont.getFontHeight()
+                );
+
+                targetFont.setBold(
+                        sourceFont.getBold()
+                );
+
+                targetFont.setItalic(
+                        sourceFont.getItalic()
+                );
+
+                targetFont.setStrikeout(
+                        sourceFont.getStrikeout()
+                );
+
+                targetFont.setUnderline(
+                        sourceFont.getUnderline()
+                );
+
+                targetFont.setTypeOffset(
+                        sourceFont.getTypeOffset()
+                );
+
+                targetFont.setColor(
+                        sourceFont.getColor()
+                );
+
+                fontMap.put(
+                        sourceFontIndex,
+                        targetFont
+                );
+            }
+
+            targetStyle.setFont(
+                    targetFont
+            );
+
+            styleMap.put(
+                    styleIndex,
+                    targetStyle
+            );
         }
 
-        targetCell.setCellStyle(targetStyle);
+        targetCell.setCellStyle(
+                targetStyle
+        );
     }
+
+
+    private static class MergeXlsxPart {
+
+        private File outputFile;
+
+        private SXSSFWorkbook workbook;
+
+        private XSSFWorkbook xssfWorkbook;
+
+        private Sheet sheet;
+
+        private int nextRowIndex;
+    }
+
 
     private static void copyCellValue(
             Cell sourceCell,
@@ -912,6 +1646,50 @@ public class HometaxMergeService {
             throw new IllegalArgumentException("분기가 올바르지 않습니다.");
         }
     }
+
+    private static String getDetailedLoginFailReason(
+            Throwable throwable) {
+
+        if (throwable == null) {
+            return "로그인 실패";
+        }
+
+        Throwable current = throwable;
+        int depth = 0;
+        String fallback = null;
+
+        while (current != null && depth < 20) {
+
+            String message = current.getMessage();
+
+            if (message != null && message.trim().length() > 0) {
+
+                String value = message.trim();
+
+                if (value.contains(
+                        "홈택스 로그인 화면 로딩 실패(ID 입력란 미표시)")) {
+                    return "홈택스 로그인 화면 로딩 실패(ID 입력란 미표시)";
+                }
+
+                if (value.contains(
+                        "입력하신 아이디, 비밀번호 또는 주민번호가 정확하지 않습니다")) {
+                    return "입력하신 아이디, 비밀번호 또는 주민번호가 정확하지 않습니다";
+                }
+
+                fallback = value;
+            }
+
+            current = current.getCause();
+            depth++;
+        }
+
+        if (fallback != null) {
+            return fallback;
+        }
+
+        return rootMessage(throwable);
+    }
+
 
     private static String rootMessage(Throwable throwable) {
 

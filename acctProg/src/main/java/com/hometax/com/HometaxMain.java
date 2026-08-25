@@ -79,9 +79,10 @@ public class HometaxMain {
     /**
      * 분류내려받기 전용.
      * ExcelTitleCopy는 호출하지 않는다.
-     * 선택한 여러 기업의 홈택스 원본 XLS를 최종 XLS 한 파일로 병합한다.
+     * 선택한 여러 기업의 홈택스 원본 XLS를 최종 XLSX 파일로 병합한다.
+     * 데이터가 많으면 001.xlsx, 002.xlsx 형식으로 자동 분할한다.
      */
-    public static File executeMerged(
+    public static List<File> executeMerged(
             List<HometaxMergeParameter> parameters,
             int year,
             int quarter) throws Exception {

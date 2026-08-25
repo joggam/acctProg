@@ -306,10 +306,18 @@ public class EgovEntrprsExcelUploadController {
         vo.setCxfc(cxfc);
         vo.setApplcntNm(applcntNm);
 
-        String[] phone = representativePhone.split("-", -1);
-        vo.setAreaNo(phone[0].trim());
-        vo.setEntrprsMiddleTelno(phone[1].trim());
-        vo.setEntrprsEndTelno(phone[2].trim());
+        // 대표자 연락처는 선택값이다.
+        // DB 컬럼이 NOT NULL이므로 미입력 시 NULL 대신 빈 문자열을 저장한다.
+        if (representativePhone == null || representativePhone.trim().isEmpty()) {
+            vo.setAreaNo("");
+            vo.setEntrprsMiddleTelno("");
+            vo.setEntrprsEndTelno("");
+        } else {
+            String[] phone = representativePhone.split("-", -1);
+            vo.setAreaNo(phone[0].trim());
+            vo.setEntrprsMiddleTelno(phone[1].trim());
+            vo.setEntrprsEndTelno(phone[2].trim());
+        }
 
         // 사용자 지정 고정값
         vo.setEntrprsSeCode("C0000002");
@@ -434,21 +442,21 @@ public class EgovEntrprsExcelUploadController {
         if (applcntNm.length() > 50) {
             return "신청자명은 50자 이하로 입력해 주세요.";
         }
-        if (representativePhone == null || representativePhone.isEmpty()) {
-            return "대표자 연락처는 필수입니다.";
-        }
-        String[] phone = representativePhone.split("-", -1);
-        if (phone.length != 3 || phone[0].trim().isEmpty() || phone[1].trim().isEmpty() || phone[2].trim().isEmpty()) {
-            return "대표자 연락처는 지역번호-중간번호-끝번호 형식으로 입력해 주세요. 예: 02-1234-5678";
-        }
-        if (!phone[0].trim().matches("\\d{1,4}")) {
-            return "대표자 연락처의 지역번호는 숫자 1~4자리여야 합니다.";
-        }
-        if (!phone[1].trim().matches("\\d{1,4}")) {
-            return "대표자 연락처의 중간번호는 숫자 1~4자리여야 합니다.";
-        }
-        if (!phone[2].trim().matches("\\d{1,4}")) {
-            return "대표자 연락처의 끝번호는 숫자 1~4자리여야 합니다.";
+        // 대표자 연락처는 선택값이다. 입력된 경우에만 형식을 검증한다.
+        if (representativePhone != null && !representativePhone.trim().isEmpty()) {
+            String[] phone = representativePhone.split("-", -1);
+            if (phone.length != 3 || phone[0].trim().isEmpty() || phone[1].trim().isEmpty() || phone[2].trim().isEmpty()) {
+                return "대표자 연락처는 지역번호-중간번호-끝번호 형식으로 입력해 주세요. 예: 02-1234-5678";
+            }
+            if (!phone[0].trim().matches("\\d{1,4}")) {
+                return "대표자 연락처의 지역번호는 숫자 1~4자리여야 합니다.";
+            }
+            if (!phone[1].trim().matches("\\d{1,4}")) {
+                return "대표자 연락처의 중간번호는 숫자 1~4자리여야 합니다.";
+            }
+            if (!phone[2].trim().matches("\\d{1,4}")) {
+                return "대표자 연락처의 끝번호는 숫자 1~4자리여야 합니다.";
+            }
         }
 
         return null;

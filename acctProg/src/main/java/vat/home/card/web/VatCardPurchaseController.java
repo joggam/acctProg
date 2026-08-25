@@ -2,6 +2,7 @@ package vat.home.card.web;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +14,11 @@ import java.util.List;
 
 import javax.annotation.Resource;
 
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.egovframe.rte.ptl.mvc.tags.ui.pagination.PaginationInfo;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -140,6 +146,8 @@ public class VatCardPurchaseController {
         int quarter = Integer.parseInt(searchVO.getSearchQuarter());
 
         int successCount = 0;
+        int totalSuccessRowCount = 0;
+        List<String> successMessages = new ArrayList<String>();
         List<String> failMessages = new ArrayList<String>();
         List<String> resultFiles = new ArrayList<String>();
 
@@ -171,6 +179,19 @@ public class VatCardPurchaseController {
 
                 successCount++;
 
+                int rowCount = countExcelDataRows(resultFile);
+
+                if (rowCount >= 0) {
+                    totalSuccessRowCount += rowCount;
+                }
+
+                successMessages.add(
+                        buildDownloadSuccessMessage(
+                                businessInfo,
+                                rowCount
+                        )
+                );
+
                 if (resultFile != null) {
                     resultFiles.add(
                             resultFile.getAbsolutePath()
@@ -191,6 +212,23 @@ public class VatCardPurchaseController {
                                 bizrSeqValue,
                                 message
                         )
+                );
+            }
+        }
+
+        if (!successMessages.isEmpty()) {
+            File successTextFile = writeDownloadSuccessText(
+                    successMessages,
+                    year,
+                    quarter,
+                    totalSuccessRowCount
+            );
+
+            if (successTextFile != null) {
+                resultFiles.add(successTextFile.getAbsolutePath());
+                model.addAttribute(
+                        "downloadSuccessTextFile",
+                        successTextFile.getAbsolutePath()
                 );
             }
         }
@@ -274,17 +312,29 @@ public class VatCardPurchaseController {
         int quarter = Integer.parseInt(searchVO.getSearchQuarter());
 
         try {
-            File resultFile =
+            List<File> mergedFiles =
                     vatCardPurchaseService.downloadMergedHometaxExcel(
                             selectedBizrSeq,
                             year,
                             quarter
                     );
 
-            List<String> resultFiles = new ArrayList<String>();
-            if (resultFile != null) {
-                resultFiles.add(resultFile.getAbsolutePath());
+            List<String> resultFiles =
+                    new ArrayList<String>();
+
+            if (mergedFiles != null) {
+
+                for (File mergedFile : mergedFiles) {
+
+                    if (mergedFile != null) {
+
+                        resultFiles.add(
+                                mergedFile.getAbsolutePath()
+                        );
+                    }
+                }
             }
+
             model.addAttribute(
                     "downloadResultFiles",
                     resultFiles
@@ -292,7 +342,10 @@ public class VatCardPurchaseController {
 
             model.addAttribute(
                     "resultMsg",
-                    "선택한 사업자 자료를 한 파일로 분류내려받기 완료했습니다."
+                    "선택한 사업자 자료 분류내려받기가 완료되었습니다. "
+                    + "최종 XLSX "
+                    + resultFiles.size()
+                    + "개 생성"
             );
 
         } catch (Exception e) {
@@ -309,6 +362,233 @@ public class VatCardPurchaseController {
         }
 
         return selectVatCardPurchaseList(searchVO, model);
+    }
+
+
+    /**
+     * 일반 내려받기에서 성공한 사업자 정보를 UTF-8 TXT로 저장한다.
+     * 비밀번호와 주민등록번호는 기록하지 않는다.
+     */
+    private File writeDownloadSuccessText(
+            List<String> successMessages,
+            int year,
+            int quarter,
+            int totalSuccessRowCount) throws Exception {
+
+        File downloadFolder = new File("C:\\hometax_download");
+
+        if (!downloadFolder.exists()
+                && !downloadFolder.mkdirs()
+                && !downloadFolder.exists()) {
+            throw new RuntimeException(
+                    "성공정보 TXT 저장 폴더를 생성할 수 없습니다. "
+                    + downloadFolder.getAbsolutePath()
+            );
+        }
+
+        String timestamp =
+                new SimpleDateFormat("yyyyMMdd_HHmmss")
+                        .format(new Date());
+
+        File outputFile = new File(
+                downloadFolder,
+                "홈택스_내려받기성공_"
+                + year
+                + "년_"
+                + quarter
+                + "분기_"
+                + timestamp
+                + ".txt"
+        );
+
+        try (
+                BufferedWriter writer =
+                        new BufferedWriter(
+                                new OutputStreamWriter(
+                                        new FileOutputStream(outputFile),
+                                        StandardCharsets.UTF_8
+                                )
+                        )
+        ) {
+            writer.write('\uFEFF');
+            writer.write("홈택스 내려받기 성공 업체");
+            writer.newLine();
+            writer.write(
+                    "조회기간 : "
+                    + year
+                    + "년 "
+                    + quarter
+                    + "분기"
+            );
+            writer.newLine();
+            writer.write(
+                    "성공건수 : "
+                    + successMessages.size()
+                    + "건"
+            );
+            writer.newLine();
+            writer.write(
+                    "============================================================"
+            );
+            writer.newLine();
+            writer.write(
+                    "상호명 | 아이디 | 사업자등록번호 | 다운로드 ROW수"
+            );
+            writer.newLine();
+            writer.write(
+                    "============================================================"
+            );
+            writer.newLine();
+
+            for (String successMessage : successMessages) {
+                writer.write(successMessage);
+                writer.newLine();
+            }
+
+            writer.write(
+                    "============================================================"
+            );
+            writer.newLine();
+            writer.write(
+                    "총 성공 업체 : "
+                    + successMessages.size()
+                    + "건"
+            );
+            writer.newLine();
+            writer.write(
+                    "총 다운로드 ROW수 : "
+                    + totalSuccessRowCount
+                    + "건"
+            );
+            writer.newLine();
+        }
+
+        System.out.println(
+                "[DOWNLOAD-SUCCESS-TXT] "
+                + outputFile.getAbsolutePath()
+        );
+
+        return outputFile;
+    }
+
+    private String buildDownloadSuccessMessage(
+            VatCardPurchaseVO businessInfo,
+            int rowCount) {
+
+        String companyName = "-";
+        String hometaxId = "-";
+        String businessNumber = "-";
+
+        if (businessInfo != null) {
+            companyName = valueOrDash(businessInfo.getCmpnyNm());
+            hometaxId = valueOrDash(businessInfo.getEntrprsmberId());
+            businessNumber =
+                    formatBusinessNumber(businessInfo.getBizrno());
+        }
+
+        String rowCountText =
+                rowCount >= 0
+                ? rowCount + "건"
+                : "확인실패";
+
+        return companyName
+                + " | "
+                + hometaxId
+                + " | "
+                + businessNumber
+                + " | "
+                + rowCountText;
+    }
+
+
+    /**
+     * 홈택스 XLS의 실제 데이터 행 수를 계산한다.
+     * 홈택스 파일 구조상 3행(index 2)부터 DATA로 보고 빈 행은 제외한다.
+     *
+     * ROW수 확인 실패가 다운로드 성공 자체를 실패 처리하게 만들지 않도록
+     * 오류 시 -1을 반환한다.
+     */
+    private int countExcelDataRows(File excelFile) {
+
+        if (excelFile == null || !excelFile.exists()) {
+            return -1;
+        }
+
+        try (
+                FileInputStream fis =
+                        new FileInputStream(excelFile);
+                Workbook workbook =
+                        new HSSFWorkbook(fis)
+        ) {
+            Sheet sheet = workbook.getSheetAt(0);
+            int count = 0;
+
+            for (int rowIndex = 2;
+                 rowIndex <= sheet.getLastRowNum();
+                 rowIndex++) {
+
+                Row row = sheet.getRow(rowIndex);
+
+                if (row == null || isEmptyExcelRow(row)) {
+                    continue;
+                }
+
+                count++;
+            }
+
+            return count;
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "[DOWNLOAD-ROW-COUNT-FAIL] "
+                    + excelFile.getAbsolutePath()
+                    + " / "
+                    + e.getMessage()
+            );
+
+            return -1;
+        }
+    }
+
+    private boolean isEmptyExcelRow(Row row) {
+
+        if (row == null) {
+            return true;
+        }
+
+        short firstCell = row.getFirstCellNum();
+        short lastCell = row.getLastCellNum();
+
+        if (firstCell < 0 || lastCell < 0) {
+            return true;
+        }
+
+        for (int col = firstCell; col < lastCell; col++) {
+
+            Cell cell = row.getCell(col);
+
+            if (cell == null) {
+                continue;
+            }
+
+            switch (cell.getCellType()) {
+            case STRING:
+                if (cell.getStringCellValue() != null
+                        && cell.getStringCellValue().trim().length() > 0) {
+                    return false;
+                }
+                break;
+
+            case BLANK:
+                break;
+
+            default:
+                return false;
+            }
+        }
+
+        return true;
     }
 
 
@@ -455,6 +735,12 @@ public class VatCardPurchaseController {
             String message = current.getMessage();
             String className = current.getClass().getName();
             String text = message == null ? "" : message.trim();
+
+            // 로그인 화면 자체가 로딩되지 않은 경우 인증 실패와 구분한다.
+            if (text.contains(
+                    "홈택스 로그인 화면 로딩 실패(ID 입력란 미표시)")) {
+                return "홈택스 로그인 화면 로딩 실패(ID 입력란 미표시)";
+            }
 
             // 로그인 인증 실패는 상세 Selenium 정보 대신 기존 문구를 유지한다.
             if (text.contains(

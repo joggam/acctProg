@@ -547,11 +547,83 @@ public class HometaxService {
                 formatBusinessNumber(
                         normalizedSelected
                 );
-// =========================================================
-        // 1. 단일 사업자
+
+
+        // =========================================================
+        // 1. WebSquare 사업자 영역 렌더링 대기
         //
-        // mf_txppWframe_bmanTxprNo가 표시되어 있으면
-        // 기존 화면값을 그대로 사용한다.
+        // 둘 중 하나가 준비될 때까지 기다린다.
+        // 1) bmanTxprNo에 실제 사업자번호 값이 표시됨
+        // 2) bmanSelectBox가 실제 화면에 표시됨
+        // =========================================================
+
+        wait.until(d -> {
+
+            List<WebElement> numberElements =
+                    d.findElements(
+                            By.id(
+                                    "mf_txppWframe_bmanTxprNo"
+                            )
+                    );
+
+            for (WebElement element : numberElements) {
+
+                try {
+
+                    if (!element.isDisplayed()) {
+                        continue;
+                    }
+
+                    String value =
+                            element.getText();
+
+                    if (value == null
+                            || value.trim().isEmpty()) {
+
+                        value =
+                                element.getAttribute(
+                                        "value"
+                                );
+                    }
+
+                    if (value != null
+                            && !value.trim().isEmpty()) {
+
+                        return true;
+                    }
+
+                } catch (Exception ignored) {
+                }
+            }
+
+
+            List<WebElement> comboElements =
+                    d.findElements(
+                            By.id(
+                                    "mf_txppWframe_bmanSelectBox"
+                            )
+                    );
+
+            for (WebElement combo : comboElements) {
+
+                try {
+
+                    if (combo.isDisplayed()) {
+                        return true;
+                    }
+
+                } catch (Exception ignored) {
+                }
+            }
+
+
+            return false;
+        });
+
+
+        // =========================================================
+        // 2. bmanTxprNo 우선 확인
+        //    일치하면 PASS, 콤보는 건드리지 않는다.
         // =========================================================
 
         List<WebElement> numberElements =
@@ -569,34 +641,51 @@ public class HometaxService {
                     continue;
                 }
 
-                String businessNumber =
+                String currentBusinessNumber =
                         element.getText();
 
-                if (businessNumber == null
-                        || businessNumber
-                                .trim()
-                                .isEmpty()) {
+                if (currentBusinessNumber == null
+                        || currentBusinessNumber.trim().isEmpty()) {
 
-                    businessNumber =
+                    currentBusinessNumber =
                             element.getAttribute(
                                     "value"
                             );
                 }
 
-                if (businessNumber != null
-                        && !businessNumber
-                                .trim()
-                                .isEmpty()) {
+                if (currentBusinessNumber == null
+                        || currentBusinessNumber.trim().isEmpty()) {
+
+                    continue;
+                }
+
+                System.out.println(
+                        "[BUSINESS] mf_txppWframe_bmanTxprNo = "
+                        + currentBusinessNumber
+                );
+
+                if (normalizedSelected.equals(
+                        onlyNumber(
+                                currentBusinessNumber
+                        ))) {
 
                     System.out.println(
-                            "[BUSINESS] 화면 사업자번호 사용 = "
-                            + businessNumber
+                            "[BUSINESS] 현재 사업자번호가 요청값과 일치 - PASS = "
+                            + currentBusinessNumber
                     );
 
                     return cleanFileNameValue(
-                            businessNumber
+                            currentBusinessNumber
                     );
                 }
+
+                System.out.println(
+                        "[BUSINESS] 현재 사업자번호가 요청값과 다름. "
+                        + "현재="
+                        + currentBusinessNumber
+                        + ", 요청="
+                        + formattedBusinessNumber
+                );
 
             } catch (Exception ignored) {
             }
@@ -604,24 +693,36 @@ public class HometaxService {
 
 
         // =========================================================
-        // 2. 여러 사업자
-        //
-        // mf_txppWframe_bmanTxprNo가 없거나 표시되지 않으면
-        // mf_txppWframe_bmanSelectBox에서 찾는다.
-        //
-        // 1차: 일반 HTML <select>
-        // 2차: WebSquare 콤보 펼친 뒤 화면 항목 검색
+        // 3. bmanTxprNo가 없거나 불일치한 경우에만
+        //    bmanSelectBox에서 대상 사업자번호 선택
         // =========================================================
 
         WebElement comboElement =
-                wait.until(
-                        ExpectedConditions
-                                .presenceOfElementLocated(
-                                        By.id(
-                                                "mf_txppWframe_bmanSelectBox"
-                                        )
-                                )
-                );
+                wait.until(d -> {
+
+                    List<WebElement> combos =
+                            d.findElements(
+                                    By.id(
+                                            "mf_txppWframe_bmanSelectBox"
+                                    )
+                            );
+
+                    for (WebElement combo : combos) {
+
+                        try {
+
+                            if (combo.isDisplayed()
+                                    && combo.isEnabled()) {
+
+                                return combo;
+                            }
+
+                        } catch (Exception ignored) {
+                        }
+                    }
+
+                    return null;
+                });
 
 
         boolean selected = false;
@@ -629,7 +730,7 @@ public class HometaxService {
 
 
         // =========================================================
-        // 2-1. 일반 HTML SELECT 처리
+        // 3-1. 일반 HTML <select>
         // =========================================================
 
         try {
@@ -644,7 +745,6 @@ public class HometaxService {
 
                 List<WebElement> options =
                         select.getOptions();
-
 
                 for (int i = 0;
                      i < options.size();
@@ -661,108 +761,57 @@ public class HometaxService {
                                     "value"
                             );
 
-                    String normalizedText =
-                            onlyNumber(
-                                    optionText
-                            );
-
-                    String normalizedValue =
-                            onlyNumber(
-                                    optionValue
-                            );
-if (isSameBusinessNumber(
+                    if (!isSameBusinessNumber(
                             normalizedSelected,
                             formattedBusinessNumber,
                             optionText,
                             optionValue)) {
 
-                        try {
+                        continue;
+                    }
 
-                            if (optionValue != null
-                                    && !optionValue
-                                            .trim()
-                                            .isEmpty()) {
+                    try {
 
-                                select.selectByValue(
-                                        optionValue
-                                );
+                        if (optionValue != null
+                                && !optionValue.trim().isEmpty()) {
 
-                            } else {
+                            select.selectByValue(
+                                    optionValue
+                            );
 
-                                select.selectByIndex(
-                                        i
-                                );
-                            }
-
-                        } catch (Exception e) {
+                        } else {
 
                             select.selectByIndex(
                                     i
                             );
                         }
 
-                        selected = true;
-                        selectedText =
-                                optionText;
+                    } catch (Exception e) {
 
-                        System.out.println(
-                                "[BUSINESS] 사업자 선택 완료 = "
-                                + optionText
+                        select.selectByIndex(
+                                i
                         );
-
-                        break;
                     }
-                }
 
+                    selected = true;
+                    selectedText =
+                            optionText;
 
-                if (selected) {
+                    System.out.println(
+                            "[BUSINESS] bmanSelectBox 사업자 선택 완료 = "
+                            + optionText
+                    );
 
-                    sleep(700);
-
-                    try {
-
-                        WebElement selectedOption =
-                                select.getFirstSelectedOption();
-
-                        String result =
-                                selectedOption.getText();
-
-                        if (result == null
-                                || result
-                                        .trim()
-                                        .isEmpty()) {
-
-                            result =
-                                    selectedOption
-                                            .getAttribute(
-                                                    "value"
-                                            );
-                        }
-
-                        if (result != null
-                                && !result
-                                        .trim()
-                                        .isEmpty()) {
-
-                            selectedText =
-                                    result;
-                        }
-
-                    } catch (Exception ignored) {
-                    }
+                    break;
                 }
             }
 
-        } catch (Exception e) {
-}
+        } catch (Exception ignored) {
+        }
 
 
         // =========================================================
-        // 2-2. WebSquare SELECTBOX 처리
-        //
-        // 일반 SELECT에서 선택하지 못했을 경우
-        // 콤보를 클릭하고 화면에 나타난 항목 중
-        // 사업자번호가 일치하는 요소를 찾아 클릭한다.
+        // 3-2. WebSquare SelectBox
         // =========================================================
 
         if (!selected) {
@@ -777,7 +826,6 @@ if (isSameBusinessNumber(
 
                 sleep(500);
 
-
                 List<WebElement> candidates =
                         driver.findElements(
                                 By.xpath(
@@ -790,7 +838,6 @@ if (isSameBusinessNumber(
                                         + "]"
                                 )
                         );
-
 
                 for (WebElement candidate
                         : candidates) {
@@ -809,29 +856,6 @@ if (isSameBusinessNumber(
                                         "value"
                                 );
 
-                        String normalizedText =
-                                onlyNumber(
-                                        candidateText
-                                );
-
-                        String normalizedValue =
-                                onlyNumber(
-                                        candidateValue
-                                );
-
-
-                        /*
-                         * 사업자번호 형태가 포함된 후보만 로그에 출력한다.
-                         * 전체 DOM을 전부 출력하면 로그가 너무 커지므로
-                         * 10자리 숫자로 정규화되는 값 위주로 출력한다.
-                         */
-                        if (normalizedText.length() == 10
-                                || normalizedValue.length() == 10
-                                || (candidateText != null
-                                    && candidateText.contains("-"))) {
-}
-
-
                         if (!isSameBusinessNumber(
                                 normalizedSelected,
                                 formattedBusinessNumber,
@@ -840,7 +864,6 @@ if (isSameBusinessNumber(
 
                             continue;
                         }
-
 
                         WebElement clickable =
                                 findClickableParent(
@@ -858,7 +881,7 @@ if (isSameBusinessNumber(
                                 candidateText;
 
                         System.out.println(
-                                "[BUSINESS] 사업자 선택 완료 = "
+                                "[BUSINESS] bmanSelectBox 사업자 선택 완료 = "
                                 + candidateText
                         );
 
@@ -868,16 +891,17 @@ if (isSameBusinessNumber(
                     }
                 }
 
-            } catch (Exception e) {
-}
+            } catch (Exception ignored) {
+            }
         }
 
 
         if (!selected) {
 
             throw new RuntimeException(
-                    "홈택스 사업자번호 콤보에서 "
-                    + "선택한 사업자번호를 찾지 못했습니다. "
+                    "홈택스 사업자번호를 찾지 못했습니다. "
+                    + "mf_txppWframe_bmanTxprNo 불일치 또는 없음, "
+                    + "mf_txppWframe_bmanSelectBox에서도 찾지 못함. "
                     + "원본="
                     + selectedBusinessNumber
                     + ", 하이픈형="
@@ -886,25 +910,99 @@ if (isSameBusinessNumber(
         }
 
 
-        /*
-         * WebSquare 선택 변경 이벤트 처리 대기
-         */
         sleep(1000);
 
 
-        String result =
-                selectedText;
+        // =========================================================
+        // 4. 콤보 선택 후 bmanTxprNo 값 재확인
+        // =========================================================
 
-        if (result == null
-                || result
-                        .trim()
-                        .isEmpty()) {
+        try {
 
-            result =
+            WebElement selectedNumberElement =
+                    new WebDriverWait(
+                            driver,
+                            Duration.ofSeconds(5)
+                    ).until(d -> {
+
+                        List<WebElement> elements =
+                                d.findElements(
+                                        By.id(
+                                                "mf_txppWframe_bmanTxprNo"
+                                        )
+                                );
+
+                        for (WebElement element : elements) {
+
+                            try {
+
+                                if (!element.isDisplayed()) {
+                                    continue;
+                                }
+
+                                String value =
+                                        element.getText();
+
+                                if (value == null
+                                        || value.trim().isEmpty()) {
+
+                                    value =
+                                            element.getAttribute(
+                                                    "value"
+                                            );
+                                }
+
+                                if (value != null
+                                        && normalizedSelected.equals(
+                                                onlyNumber(
+                                                        value
+                                                ))) {
+
+                                    return element;
+                                }
+
+                            } catch (Exception ignored) {
+                            }
+                        }
+
+                        return null;
+                    });
+
+
+            String currentBusinessNumber =
+                    selectedNumberElement.getText();
+
+            if (currentBusinessNumber == null
+                    || currentBusinessNumber.trim().isEmpty()) {
+
+                currentBusinessNumber =
+                        selectedNumberElement.getAttribute(
+                                "value"
+                        );
+            }
+
+            System.out.println(
+                    "[BUSINESS] 선택 후 사업자번호 확인 완료 = "
+                    + currentBusinessNumber
+            );
+
+            return cleanFileNameValue(
+                    currentBusinessNumber
+            );
+
+        } catch (Exception ignored) {
+        }
+
+
+        if (selectedText == null
+                || selectedText.trim().isEmpty()) {
+
+            selectedText =
                     formattedBusinessNumber;
         }
-return cleanFileNameValue(
-                result
+
+        return cleanFileNameValue(
+                selectedText
         );
     }
 
