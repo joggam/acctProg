@@ -51,18 +51,69 @@
 
     <bean id="localeResolver" class="org.springframework.web.servlet.i18n.SessionLocaleResolver" />
     
-	<bean id="egovWebLogInterceptor" class="egovframework.com.sym.log.wlg.web.EgovWebLogInterceptor" />
+	<bean id="egovWebLogInterceptor"
+	      class="egovframework.com.sym.log.wlg.web.EgovWebLogInterceptor" />
+
+	<!--
+		홈택스 다운로드 진행상태 조회 URL은 1초 주기로 호출되므로
+		COMTNWEBLOG 기록 대상에서 제외한다.
+		나머지 URL은 기존과 동일하게 EgovWebLogInterceptor가 적용된다.
+	-->
+	<bean id="egovWebLogMappedInterceptor"
+	      class="org.springframework.web.servlet.handler.MappedInterceptor">
+
+		<!-- includePatterns -->
+		<constructor-arg>
+			<list>
+				<value>/**</value>
+			</list>
+		</constructor-arg>
+
+		<!-- excludePatterns -->
+		<constructor-arg>
+			<list>
+				<value>/vat/home/card/downloadProgress.do</value>
+			</list>
+		</constructor-arg>
+
+		<!-- 실제 웹로그 인터셉터 -->
+		<constructor-arg ref="egovWebLogInterceptor" />
+	</bean>
 	
 	<!-- 요청 URL 및 Controller Method 로그 -->
 	<bean id="requestLogInterceptor"
 	      class="com.com.interceptor.RequestLogInterceptor" />
 
+	<!--
+		홈택스 다운로드 진행상태 조회 URL은 1초 주기로 호출되므로
+		콘솔 REQUEST/RESPONSE 로그 대상에서도 제외한다.
+		나머지 URL은 기존과 동일하게 RequestLogInterceptor가 적용된다.
+	-->
+	<bean id="requestLogMappedInterceptor"
+	      class="org.springframework.web.servlet.handler.MappedInterceptor">
+
+		<!-- includePatterns -->
+		<constructor-arg>
+			<list>
+				<value>/**</value>
+			</list>
+		</constructor-arg>
+
+		<!-- excludePatterns -->
+		<constructor-arg>
+			<list>
+				<value>/vat/home/card/downloadProgress.do</value>
+			</list>
+		</constructor-arg>
+
+		<!-- 실제 요청 로그 인터셉터 -->
+		<constructor-arg ref="requestLogInterceptor" />
+	</bean>
+
     <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
         <property name="interceptors">
             <list>
                 <ref bean="localeChangeInterceptor"/>
-                <ref bean="egovWebLogInterceptor"/>
-                <ref bean="requestLogInterceptor"/>
             </list>
         </property>
     </bean>

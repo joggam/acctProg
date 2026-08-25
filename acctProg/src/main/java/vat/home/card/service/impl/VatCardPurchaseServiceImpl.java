@@ -64,7 +64,8 @@ public class VatCardPurchaseServiceImpl extends EgovAbstractServiceImpl
     public List<File> downloadMergedHometaxExcel(
             String[] selectedBizrSeq,
             int year,
-            int quarter) throws Exception {
+            int quarter,
+            String jobId) throws Exception {
 
         if (selectedBizrSeq == null || selectedBizrSeq.length == 0) {
             throw new IllegalArgumentException(
@@ -109,7 +110,12 @@ public class VatCardPurchaseServiceImpl extends EgovAbstractServiceImpl
             );
         }
 
-        return HometaxMain.executeMerged(parameters, year, quarter);
+        return HometaxMain.executeMerged(
+                parameters,
+                year,
+                quarter,
+                jobId
+        );
     }
 
     private VatCardPurchaseVO getLoginInfo(Long bizrSeq) {

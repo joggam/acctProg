@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Resource;
 
@@ -25,11 +26,13 @@ import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import egovframework.com.cmm.annotation.IncludedInfo;
 
 import vat.home.card.service.VatCardPurchaseService;
 import vat.home.card.service.VatCardPurchaseVO;
+import com.hometax.com.HometaxProgressTracker;
 
 /**
  * 사업용신용카드 매입세액 공제 확인/변경 Controller
@@ -110,6 +113,20 @@ public class VatCardPurchaseController {
     }
 
     /**
+     * 홈택스 다운로드 진행상태 조회.
+     */
+    @ResponseBody
+    @RequestMapping("/vat/home/card/downloadProgress.do")
+    public Map<String, Object> downloadProgress(
+            @RequestParam("jobId") String jobId) {
+
+        return HometaxProgressTracker.getSnapshot(
+                jobId
+        );
+    }
+
+
+    /**
      * 체크된 기업회원의 홈택스 자료 내려받기/가공 처리.
      * 화면에서는 selectedBizrSeq 값으로 COMTNENTRPRSBIZR.BIZR_SEQ만 전달한다.
      */
@@ -117,6 +134,8 @@ public class VatCardPurchaseController {
     public String downloadSelectedEntrprsMber(
             @RequestParam(value = "selectedBizrSeq", required = false)
             String[] selectedBizrSeq,
+            @RequestParam(value = "jobId", required = false)
+            String jobId,
             @ModelAttribute("searchVO") VatCardPurchaseVO searchVO,
             ModelMap model) throws Exception {
 
@@ -130,7 +149,12 @@ public class VatCardPurchaseController {
                     "내려받을 사업자등록번호를 선택해 주세요."
             );
 
-            return selectVatCardPurchaseList(searchVO, model);
+            model.addAttribute("downloadStatus", "ERROR");
+            model.addAttribute(
+                    "downloadMessage",
+                    String.valueOf(model.get("resultMsg"))
+            );
+            return "vat/home/card/VatCardPurchaseDownloadResult";
         }
 
         if (!"QUARTER".equals(searchVO.getSearchPeriodType())) {
@@ -139,11 +163,22 @@ public class VatCardPurchaseController {
                     "현재 홈택스 자동 내려받기는 분기별 조회만 지원합니다."
             );
 
-            return selectVatCardPurchaseList(searchVO, model);
+            model.addAttribute("downloadStatus", "ERROR");
+            model.addAttribute(
+                    "downloadMessage",
+                    String.valueOf(model.get("resultMsg"))
+            );
+            return "vat/home/card/VatCardPurchaseDownloadResult";
         }
 
         int year = Integer.parseInt(searchVO.getSearchYear());
         int quarter = Integer.parseInt(searchVO.getSearchQuarter());
+
+        HometaxProgressTracker.start(
+                jobId,
+                selectedBizrSeq.length,
+                "DOWNLOAD"
+        );
 
         int successCount = 0;
         int totalSuccessRowCount = 0;
@@ -169,6 +204,13 @@ public class VatCardPurchaseController {
                         vatCardPurchaseService.selectEntrprsMberLoginInfo(
                                 bizrSeq
                         );
+
+                HometaxProgressTracker.setCurrent(
+                        jobId,
+                        businessInfo == null
+                        ? ""
+                        : businessInfo.getCmpnyNm()
+                );
 
                 File resultFile =
                         vatCardPurchaseService.downloadHometaxExcel(
@@ -214,6 +256,10 @@ public class VatCardPurchaseController {
                         )
                 );
             }
+
+            HometaxProgressTracker.completeOne(
+                    jobId
+            );
         }
 
         if (!successMessages.isEmpty()) {
@@ -272,7 +318,41 @@ public class VatCardPurchaseController {
             );
         }
 
-        return selectVatCardPurchaseList(searchVO, model);
+        String completeMessage =
+                String.valueOf(model.get("resultMsg"));
+
+        // 전부 실패한 경우에는 화면에서도 성공으로 표시하지 않는다.
+        if (successCount == 0 && !failMessages.isEmpty()) {
+
+            HometaxProgressTracker.fail(
+                    jobId,
+                    completeMessage
+            );
+
+            model.addAttribute(
+                    "downloadStatus",
+                    "ERROR"
+            );
+
+        } else {
+
+            HometaxProgressTracker.finish(
+                    jobId,
+                    completeMessage
+            );
+
+            model.addAttribute(
+                    "downloadStatus",
+                    "SUCCESS"
+            );
+        }
+
+        model.addAttribute(
+                "downloadMessage",
+                completeMessage
+        );
+
+        return "vat/home/card/VatCardPurchaseDownloadResult";
     }
 
     /**
@@ -283,6 +363,8 @@ public class VatCardPurchaseController {
     public String downloadMergedEntrprsMber(
             @RequestParam(value = "selectedBizrSeq", required = false)
             String[] selectedBizrSeq,
+            @RequestParam(value = "jobId", required = false)
+            String jobId,
             @ModelAttribute("searchVO") VatCardPurchaseVO searchVO,
             ModelMap model) throws Exception {
 
@@ -296,7 +378,12 @@ public class VatCardPurchaseController {
                     "분류내려받기 할 사업자등록번호를 선택해 주세요."
             );
 
-            return selectVatCardPurchaseList(searchVO, model);
+            model.addAttribute("downloadStatus", "ERROR");
+            model.addAttribute(
+                    "downloadMessage",
+                    String.valueOf(model.get("resultMsg"))
+            );
+            return "vat/home/card/VatCardPurchaseDownloadResult";
         }
 
         if (!"QUARTER".equals(searchVO.getSearchPeriodType())) {
@@ -305,18 +392,30 @@ public class VatCardPurchaseController {
                     "현재 분류내려받기는 분기별 조회만 지원합니다."
             );
 
-            return selectVatCardPurchaseList(searchVO, model);
+            model.addAttribute("downloadStatus", "ERROR");
+            model.addAttribute(
+                    "downloadMessage",
+                    String.valueOf(model.get("resultMsg"))
+            );
+            return "vat/home/card/VatCardPurchaseDownloadResult";
         }
 
         int year = Integer.parseInt(searchVO.getSearchYear());
         int quarter = Integer.parseInt(searchVO.getSearchQuarter());
+
+        HometaxProgressTracker.start(
+                jobId,
+                selectedBizrSeq.length,
+                "MERGE"
+        );
 
         try {
             List<File> mergedFiles =
                     vatCardPurchaseService.downloadMergedHometaxExcel(
                             selectedBizrSeq,
                             year,
-                            quarter
+                            quarter,
+                            jobId
                     );
 
             List<String> resultFiles =
@@ -340,12 +439,34 @@ public class VatCardPurchaseController {
                     resultFiles
             );
 
+            String completeMessage;
+
+            if (resultFiles.isEmpty()) {
+                // HometaxMergeService에서 모든 대상이
+                // "조회된 내역이 없습니다."인 경우 빈 List를 반환한다.
+                // 이 경우는 오류가 아니라 정상 조회 결과로 안내한다.
+                completeMessage =
+                        "분류내려받기 완료: 조회된 내역이 없습니다.";
+            } else {
+                completeMessage =
+                        "분류내려받기가 완료되었습니다. 생성 파일 "
+                        + resultFiles.size()
+                        + "건";
+            }
+
+            HometaxProgressTracker.finish(
+                    jobId,
+                    completeMessage
+            );
+
             model.addAttribute(
-                    "resultMsg",
-                    "선택한 사업자 자료 분류내려받기가 완료되었습니다. "
-                    + "최종 XLSX "
-                    + resultFiles.size()
-                    + "개 생성"
+                    "downloadStatus",
+                    "SUCCESS"
+            );
+
+            model.addAttribute(
+                    "downloadMessage",
+                    completeMessage
             );
 
         } catch (Exception e) {
@@ -355,13 +476,27 @@ public class VatCardPurchaseController {
                 message = e.getClass().getSimpleName();
             }
 
+            String errorMessage =
+                    "분류내려받기 실패: "
+                    + message;
+
+            HometaxProgressTracker.fail(
+                    jobId,
+                    errorMessage
+            );
+
             model.addAttribute(
-                    "resultMsg",
-                    "분류내려받기 실패: " + message
+                    "downloadStatus",
+                    "ERROR"
+            );
+
+            model.addAttribute(
+                    "downloadMessage",
+                    errorMessage
             );
         }
 
-        return selectVatCardPurchaseList(searchVO, model);
+        return "vat/home/card/VatCardPurchaseDownloadResult";
     }
 
 

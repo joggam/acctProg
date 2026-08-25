@@ -278,6 +278,9 @@ public class HometaxLogin {
             // 9. 2차 인증 확인
             // =====================================================
 
+            String originalWindow =
+                    driver.getWindowHandle();
+
             WebElement secondAuth =
                     wait.until(
                         ExpectedConditions
@@ -298,28 +301,24 @@ public class HometaxLogin {
 
             // =====================================================
             // 10. 로그인 성공 확인
+            //
+            // ① 일반 로그인: 로그아웃 표시
+            // ② 보안카드 발급 팝업:
+            //    팝업 취소 -> 지정된 Alert 문구 확인 -> 확인 클릭
             // =====================================================
 
-            wait.until(d ->
+            boolean loginSuccess =
+                    waitForLoginSuccessOrSecurityCardPopup(
+                            driver,
+                            originalWindow
+                    );
 
-                d.findElements(
-                    By.xpath(
-                        "//*[normalize-space(text())='로그아웃']"
-                    )
-                )
-                .stream()
-                .anyMatch(element -> {
+            if (!loginSuccess) {
 
-                    try {
-
-                        return element.isDisplayed();
-
-                    } catch (Exception e) {
-
-                        return false;
-                    }
-                })
-            );
+                throw new RuntimeException(
+                        "홈택스 로그인 성공 여부를 확인하지 못했습니다."
+                );
+            }
 
 
             System.out.println(
@@ -349,6 +348,273 @@ public class HometaxLogin {
                     e
             );
         }
+    }
+
+
+    /**
+     * 로그인 성공 또는 보안카드 발급 안내 팝업을 처리한다.
+     *
+     * 일반 로그인은 '로그아웃' 표시로 성공 처리한다.
+     * 보안카드 팝업은 취소 버튼 클릭 후 아래 Alert 문구가 정확히 일치할 때만
+     * 확인을 누르고 일반 로그인 성공으로 처리한다.
+     */
+    private static boolean waitForLoginSuccessOrSecurityCardPopup(
+            WebDriver driver,
+            String originalWindow) {
+
+        final String expectedAlertText =
+                "보안카드 인증을 취소하시고, 일반 로그인을 하시겠습니까?";
+
+        long endTime =
+                System.currentTimeMillis()
+                + Duration.ofSeconds(30).toMillis();
+
+        while (System.currentTimeMillis() < endTime) {
+
+            // =====================================================
+            // 1. 기존 정상 로그인 성공 확인
+            // =====================================================
+            try {
+
+                boolean logoutVisible =
+                        driver.findElements(
+                            By.xpath(
+                                "//*[normalize-space(text())='로그아웃']"
+                            )
+                        )
+                        .stream()
+                        .anyMatch(element -> {
+
+                            try {
+                                return element.isDisplayed();
+                            } catch (Exception e) {
+                                return false;
+                            }
+                        });
+
+                if (logoutVisible) {
+
+                    System.out.println(
+                            "[LOGIN-NORMAL] 일반 로그인 성공"
+                    );
+
+                    return true;
+                }
+
+            } catch (Exception ignored) {
+            }
+
+
+            // =====================================================
+            // 2. 보안카드 발급 팝업 확인
+            // =====================================================
+            try {
+
+                String securityCardWindow =
+                        findSecurityCardPopupWindow(driver);
+
+                if (securityCardWindow != null) {
+
+                    System.out.println(
+                            "[LOGIN-SECURITY-CARD] 보안카드 발급 팝업 감지"
+                    );
+
+                    driver.switchTo().window(securityCardWindow);
+
+                    WebDriverWait popupWait =
+                            new WebDriverWait(
+                                    driver,
+                                    Duration.ofSeconds(10)
+                            );
+
+                    WebElement cancelButton =
+                            popupWait.until(d -> {
+
+                                for (WebElement element :
+                                        d.findElements(
+                                            By.xpath(
+                                                "//*["
+                                                + "self::button "
+                                                + "or self::a "
+                                                + "or self::span "
+                                                + "or self::input"
+                                                + "]["
+                                                + "normalize-space(text())='취소' "
+                                                + "or @value='취소'"
+                                                + "]"
+                                            )
+                                        )) {
+
+                                    try {
+
+                                        if (element.isDisplayed()
+                                                && element.isEnabled()) {
+
+                                            return element;
+                                        }
+
+                                    } catch (Exception ignored) {
+                                    }
+                                }
+
+                                return null;
+                            });
+
+                    cancelButton.click();
+
+                    System.out.println(
+                            "[LOGIN-SECURITY-CARD] 보안카드 팝업 취소 클릭 완료"
+                    );
+
+                    popupWait.until(
+                        ExpectedConditions.alertIsPresent()
+                    );
+
+                    String actualAlertText =
+                            driver.switchTo()
+                                  .alert()
+                                  .getText();
+
+                    String normalizedActual =
+                            normalizeWhitespace(actualAlertText);
+
+                    String normalizedExpected =
+                            normalizeWhitespace(expectedAlertText);
+
+                    System.out.println(
+                            "[LOGIN-SECURITY-CARD-ALERT] "
+                            + normalizedActual
+                    );
+
+                    // 지정된 보안카드 취소 Alert 문구와 정확히 일치할 때만 확인
+                    if (!normalizedExpected.equals(normalizedActual)) {
+
+                        System.out.println(
+                                "[LOGIN-SECURITY-CARD-ALERT-MISMATCH] "
+                                + "예상하지 못한 Alert이므로 로그인 성공 처리하지 않음"
+                        );
+
+                        try {
+                            driver.switchTo().alert().dismiss();
+                        } catch (Exception ignored) {
+                        }
+
+                        return false;
+                    }
+
+                    driver.switchTo()
+                          .alert()
+                          .accept();
+
+                    System.out.println(
+                            "[LOGIN-SECURITY-CARD] 일반 로그인 Alert 확인 완료"
+                    );
+
+                    sleep(1000);
+
+                    // Alert 처리 후 원래 홈택스 창으로 복귀
+                    try {
+
+                        if (driver.getWindowHandles()
+                                  .contains(originalWindow)) {
+
+                            driver.switchTo()
+                                  .window(originalWindow);
+                        }
+
+                    } catch (Exception ignored) {
+                    }
+
+                    System.out.println(
+                            "[LOGIN-SECURITY-CARD] "
+                            + "보안카드 인증 취소 후 일반 로그인 처리 완료"
+                    );
+
+                    return true;
+                }
+
+            } catch (Exception e) {
+
+                System.out.println(
+                        "[LOGIN-SECURITY-CARD-FAIL] "
+                        + firstLine(e.getMessage())
+                );
+            }
+
+            sleep(500);
+        }
+
+        return false;
+    }
+
+
+    /**
+     * 보안카드 발급 팝업 창을 찾는다.
+     */
+    private static String findSecurityCardPopupWindow(
+            WebDriver driver) {
+
+        String currentWindow = null;
+
+        try {
+            currentWindow = driver.getWindowHandle();
+        } catch (Exception ignored) {
+        }
+
+        for (String windowHandle :
+                driver.getWindowHandles()) {
+
+            try {
+
+                driver.switchTo().window(windowHandle);
+
+                String currentUrl =
+                        driver.getCurrentUrl();
+
+                if (currentUrl != null
+                        && (
+                            currentUrl.contains(
+                                "UTECMABA04.xml"
+                            )
+                            ||
+                            currentUrl.contains(
+                                "popupID=mf_txppWframe_UTXPPABA08"
+                            )
+                        )) {
+
+                    return windowHandle;
+                }
+
+            } catch (Exception ignored) {
+            }
+        }
+
+        if (currentWindow != null) {
+
+            try {
+                driver.switchTo().window(currentWindow);
+            } catch (Exception ignored) {
+            }
+        }
+
+        return null;
+    }
+
+
+    /**
+     * Alert 문구의 줄바꿈/연속 공백 차이만 제거한다.
+     * 문구 자체는 완전히 동일해야 성공으로 인정한다.
+     */
+    private static String normalizeWhitespace(
+            String value) {
+
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .replaceAll("\\s+", " ")
+                .trim();
     }
 
     /**

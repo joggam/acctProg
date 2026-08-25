@@ -52,7 +52,8 @@ public class HometaxMergeService {
             List<HometaxMergeParameter> parameters,
             int year,
             int quarter,
-            String downloadDir) throws Exception {
+            String downloadDir,
+            String jobId) throws Exception {
 
         if (parameters == null || parameters.isEmpty()) {
             throw new IllegalArgumentException(
@@ -75,6 +76,11 @@ public class HometaxMergeService {
         List<String> downloadFailMessages = new ArrayList<String>();
 
         for (HometaxMergeParameter parameter : parameters) {
+
+            HometaxProgressTracker.setCurrent(
+                    jobId,
+                    parameter.getCompanyName()
+            );
 
             WebDriver driver = null;
 
@@ -170,6 +176,10 @@ public class HometaxMergeService {
                     } catch (Exception ignored) {
                     }
                 }
+
+                HometaxProgressTracker.completeOne(
+                        jobId
+                );
             }
         }
 
@@ -223,6 +233,34 @@ public class HometaxMergeService {
         }
 
         if (downloadedFiles.isEmpty()) {
+
+            // 분류내려받기 과정에서 Chrome/홈택스가 부수적으로 생성한
+            // downloads.htm 계열 파일을 정리한다.
+            deleteDownloadsHtml(
+                    downloadFolder
+            );
+
+            // =========================================================
+            // 모든 대상이 "조회된 내역이 없습니다."인 경우는
+            // 시스템 오류가 아니라 정상적인 조회 결과로 처리한다.
+            //
+            // - 로그인 실패가 없어야 함
+            // - 다운로드 실패가 1건 이상 있어야 함
+            // - 모든 다운로드 실패 사유가 "조회된 내역이 없습니다."여야 함
+            //
+            // 실패 TXT는 위에서 이미 생성했으므로 그대로 남긴다.
+            // Controller에서는 빈 List를 받아 "조회된 내역 없음"으로 안내한다.
+            // =========================================================
+            if (loginFailMessages.isEmpty()
+                    && allDownloadFailuresAreNoData(downloadFailMessages)) {
+
+                System.out.println(
+                        "[MERGE-NO-DATA] 모든 대상의 조회된 내역이 없습니다."
+                );
+
+                return new ArrayList<File>();
+            }
+
             String firstError = "";
 
             if (!loginFailMessages.isEmpty()) {
@@ -275,6 +313,12 @@ public class HometaxMergeService {
             }
         }
 
+        // 분류내려받기 과정에서 생성된 불필요한 downloads.htm 계열만 제거.
+        // 최종 XLSX / 성공·실패 TXT는 삭제하지 않는다.
+        deleteDownloadsHtml(
+                downloadFolder
+        );
+
         if (!loginFailMessages.isEmpty()) {
             System.out.println();
             System.out.println("[MERGE-WARN] 일부 대상 홈택스 로그인 실패");
@@ -293,6 +337,129 @@ public class HometaxMergeService {
 
         return mergedFiles;
     }
+
+    /**
+     * 다운로드 실패 목록이 전부 "조회된 내역이 없습니다."인지 확인한다.
+     */
+    private static boolean allDownloadFailuresAreNoData(
+            List<String> downloadFailMessages) {
+
+        if (downloadFailMessages == null
+                || downloadFailMessages.isEmpty()) {
+            return false;
+        }
+
+        for (String failMessage : downloadFailMessages) {
+
+            if (failMessage == null
+                    || !failMessage.contains("조회된 내역이 없습니다.")) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+    /**
+     * 분류내려받기 중 Chrome/홈택스가 부수적으로 생성하는
+     * downloads.htm, downloads (1).htm ... 및
+     * downloads.htm.crdownload, downloads (1).htm.crdownload ...
+     * 파일만 삭제한다.
+     *
+     * .crdownload는 Chrome이 파일을 잡고 있는 순간 바로 삭제가 안 될 수 있어
+     * 최대 5회, 500ms 간격으로 재시도한다.
+     *
+     * 일반 내려받기에는 이 메서드가 호출되지 않는다.
+     */
+    private static void deleteDownloadsHtml(
+            File downloadFolder) {
+
+        if (downloadFolder == null
+                || !downloadFolder.exists()
+                || !downloadFolder.isDirectory()) {
+
+            return;
+        }
+
+        File[] files =
+                downloadFolder.listFiles();
+
+        if (files == null) {
+            return;
+        }
+
+        for (File file : files) {
+
+            if (file == null
+                    || !file.isFile()) {
+
+                continue;
+            }
+
+            String fileName =
+                    file.getName();
+
+            boolean target =
+                    fileName.matches(
+                            "(?i)^downloads(?: \\(\\d+\\))?\\.htm(?:\\.crdownload)?$"
+                    );
+
+            if (!target) {
+                continue;
+            }
+
+            boolean deleted = false;
+
+            for (int retry = 1;
+                 retry <= 5;
+                 retry++) {
+
+                try {
+
+                    if (!file.exists()) {
+                        deleted = true;
+                        break;
+                    }
+
+                    deleted =
+                            file.delete();
+
+                    if (deleted) {
+                        break;
+                    }
+
+                    // Chrome이 .crdownload 파일 핸들을 아직 놓지 않은 경우 대기 후 재시도
+                    try {
+                        Thread.sleep(500L);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+
+                } catch (Exception e) {
+
+                    if (retry == 5) {
+
+                        System.out.println(
+                                "[MERGE-CLEAN-HTML-FAIL] "
+                                + fileName
+                                + " / "
+                                + e.getMessage()
+                        );
+                    }
+                }
+            }
+
+            System.out.println(
+                    "[MERGE-CLEAN-HTML] "
+                    + fileName
+                    + " 삭제="
+                    + deleted
+            );
+        }
+    }
+
 
     /**
      * 분류내려받기에서 성공한 업체 정보를 UTF-8 TXT로 저장한다.

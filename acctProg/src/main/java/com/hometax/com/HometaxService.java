@@ -217,6 +217,10 @@ public class HometaxService {
             // 7. 조회 완료 대기
             // =====================================================
 
+            // 조회 직후 홈택스가 "조회된 내역이 없습니다." Alert를 띄우는 경우
+            // Selenium의 UnhandledAlertException으로 번지기 전에 여기서 직접 처리한다.
+            checkSearchResultAlert();
+
             waitForSearchResult();
 
             System.out.println(
@@ -1570,6 +1574,41 @@ public class HometaxService {
         } catch (Exception e) {
 
             return element;
+        }
+    }
+
+
+    // =============================================================
+    // 조회 결과 Alert 확인
+    // =============================================================
+
+    private void checkSearchResultAlert() {
+
+        try {
+            Alert resultAlert =
+                    new WebDriverWait(
+                            driver,
+                            Duration.ofSeconds(2)
+                    ).until(
+                            ExpectedConditions.alertIsPresent()
+                    );
+
+            String alertText = resultAlert.getText();
+            resultAlert.accept();
+
+            if (alertText != null
+                    && !alertText.trim().isEmpty()) {
+
+                System.out.println(
+                        "[WORK-7-1] 조회 결과 Alert = "
+                        + alertText
+                );
+
+                throw new RuntimeException(alertText.trim());
+            }
+
+        } catch (org.openqa.selenium.TimeoutException e) {
+            // Alert가 없으면 정상 조회 흐름이므로 그대로 진행한다.
         }
     }
 

@@ -85,7 +85,8 @@ public class HometaxMain {
     public static List<File> executeMerged(
             List<HometaxMergeParameter> parameters,
             int year,
-            int quarter) throws Exception {
+            int quarter,
+            String jobId) throws Exception {
 
         if (parameters == null || parameters.isEmpty()) {
             throw new IllegalArgumentException(
@@ -109,7 +110,8 @@ public class HometaxMain {
                 parameters,
                 year,
                 quarter,
-                DOWNLOAD_DIR
+                DOWNLOAD_DIR,
+                jobId
         );
     }
 
