@@ -3,10 +3,6 @@ package com.hometax.com;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 
 import org.openqa.selenium.WebDriver;
 
@@ -27,39 +23,6 @@ public final class HometaxProgressTracker {
      */
     private static final ThreadLocal<String> CURRENT_JOB_ID =
             new ThreadLocal<String>();
-
-    /**
-     * 브라우저/탭 강제 종료로 sendBeacon이 전달되지 않는 경우에도
-     * heartbeat가 10초 이상 끊기면 현재 WebDriver를 즉시 종료한다.
-     */
-    private static final ScheduledExecutorService WATCHDOG =
-            Executors.newSingleThreadScheduledExecutor(
-                    new ThreadFactory() {
-                        @Override
-                        public Thread newThread(Runnable runnable) {
-                            Thread thread = new Thread(
-                                    runnable,
-                                    "hometax-progress-watchdog"
-                            );
-                            thread.setDaemon(true);
-                            return thread;
-                        }
-                    }
-            );
-
-    static {
-        WATCHDOG.scheduleAtFixedRate(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        checkDisconnectedJobs();
-                    }
-                },
-                3L,
-                2L,
-                TimeUnit.SECONDS
-        );
-    }
 
     private HometaxProgressTracker() {
     }
@@ -94,7 +57,11 @@ public final class HometaxProgressTracker {
     }
 
     /**
-     * 처리 화면이 살아 있다는 신호를 갱신한다.
+     * 진행률/예상 잔여시간 화면 갱신 시각을 기록한다.
+     *
+     * 중요:
+     * 이 heartbeat가 끊겼다는 이유만으로 작업을 취소하지 않는다.
+     * 취소는 명시적인 BUTTON 또는 PAGE_CLOSE 요청으로만 수행한다.
      */
     public static void heartbeat(
             String jobId) {
@@ -110,31 +77,6 @@ public final class HometaxProgressTracker {
         progress.lastHeartbeatTime =
                 System.currentTimeMillis();
     }
-
-    /**
-     * 처리 화면이 닫히거나 이동되어 heartbeat가 끊겼는지 확인한다.
-     *
-     * 최초 요청 직후/일시적인 브라우저 지연을 고려하여
-     * 10초 이상 신호가 없을 때만 종료 대상으로 판단한다.
-     */
-    public static boolean isClientDisconnected(
-            String jobId) {
-
-        Progress progress =
-                PROGRESS_MAP.get(jobId);
-
-        if (progress == null
-                || progress.finished) {
-            return false;
-        }
-
-        long elapsed =
-                System.currentTimeMillis()
-                - progress.lastHeartbeatTime;
-
-        return elapsed > 10000L;
-    }
-
 
     public static void setCurrent(
             String jobId,
@@ -352,48 +294,6 @@ public final class HometaxProgressTracker {
                     "[CANCEL-DRIVER] Chrome 종료 중 예외 무시 / "
                     + firstLine(e.getMessage())
             );
-        }
-    }
-
-    private static void checkDisconnectedJobs() {
-
-        try {
-
-            long now =
-                    System.currentTimeMillis();
-
-            for (Map.Entry<String, Progress> entry
-                    : PROGRESS_MAP.entrySet()) {
-
-                String jobId =
-                        entry.getKey();
-
-                Progress progress =
-                        entry.getValue();
-
-                if (progress == null
-                        || progress.finished
-                        || progress.cancelRequested) {
-                    continue;
-                }
-
-                if (now - progress.lastHeartbeatTime
-                        <= 10000L) {
-                    continue;
-                }
-
-                System.out.println(
-                        "[CANCEL-WATCHDOG-PAGE-CLOSE] "
-                        + "heartbeat 10초 단절 - 즉시 종료"
-                );
-
-                requestCancel(
-                        jobId,
-                        "PAGE_CLOSE"
-                );
-            }
-
-        } catch (Exception ignored) {
         }
     }
 

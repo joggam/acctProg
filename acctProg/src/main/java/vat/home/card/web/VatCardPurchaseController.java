@@ -221,44 +221,28 @@ public class VatCardPurchaseController {
 
         for (String bizrSeqValue : selectedBizrSeq) {
 
-            // 취소 버튼을 눌렀거나 처리 화면이 닫혀 heartbeat가 끊기면
-            // 다음 업체를 시작하지 않는다.
-            if (HometaxProgressTracker.isCancelRequested(jobId)
-                    || HometaxProgressTracker.isClientDisconnected(jobId)) {
+            // 명시적인 취소 요청이 들어온 경우에만 중단한다.
+            // heartbeat 단절만으로는 절대 자동 종료하지 않는다.
+            if (HometaxProgressTracker.isCancelRequested(jobId)) {
 
-                if (HometaxProgressTracker.isClientDisconnected(jobId)) {
+                String cancelSource =
+                        HometaxProgressTracker.getCancelSource(
+                                jobId
+                        );
 
-                    HometaxProgressTracker.requestCancel(
-                            jobId,
-                            "PAGE_CLOSE"
-                    );
+                if ("PAGE_CLOSE".equals(cancelSource)) {
 
                     System.out.println(
                             "[DOWNLOAD-CANCEL-PAGE-CLOSE] "
-                            + "처리 화면 종료 감지 - 다음 업체부터 중단"
+                            + "실제 페이지 종료 요청으로 다음 업체 처리 중단"
                     );
 
                 } else {
 
-                    String cancelSource =
-                            HometaxProgressTracker.getCancelSource(
-                                    jobId
-                            );
-
-                    if ("PAGE_CLOSE".equals(cancelSource)) {
-
-                        System.out.println(
-                                "[DOWNLOAD-CANCEL-PAGE-CLOSE] "
-                                + "처리 화면 종료로 다음 업체 처리 중단"
-                        );
-
-                    } else {
-
-                        System.out.println(
-                                "[DOWNLOAD-CANCEL-BUTTON] "
-                                + "취소 버튼 요청으로 다음 업체 처리 중단"
-                        );
-                    }
+                    System.out.println(
+                            "[DOWNLOAD-CANCEL-BUTTON] "
+                            + "취소 버튼 요청으로 다음 업체 처리 중단"
+                    );
                 }
 
                 break;
