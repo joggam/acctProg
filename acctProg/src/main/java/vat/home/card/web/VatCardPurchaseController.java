@@ -553,6 +553,13 @@ public class VatCardPurchaseController {
                 }
             }
 
+            // 실제 병합 결과 파일이 하나도 없으면 성공으로 처리하지 않는다.
+            if (resultFiles.isEmpty()) {
+                throw new RuntimeException(
+                        "분류내려받기에 성공한 홈택스 파일이 없습니다."
+                );
+            }
+
             model.addAttribute(
                     "downloadResultFiles",
                     resultFiles
