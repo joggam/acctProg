@@ -92,6 +92,18 @@ public class EntrprsManageVO  extends UserDefaultVO{
 	 */
 	private String entrprsSeCode;
 	/**
+	 * 사업자구분 코드 (VAT001: 1 법인, 2 개인)
+	 */
+	private String bizrSeCode;
+	/**
+	 * 직원여부 코드 (VAT002: 1 유, 2 무)
+	 */
+	private String emplSeCode;
+	/**
+	 * 차량구분 코드 (VAT003: 1 무, 2 불공차량 유, 3 공제차량 유)
+	 */
+	private String vhclSeCode;
+	/**
 	 * 팩스번호
 	 */
 	private String fxnum;
@@ -391,6 +403,30 @@ public class EntrprsManageVO  extends UserDefaultVO{
 	 */
 	public void setEntrprsSeCode(String entrprsSeCode) {
 		this.entrprsSeCode = entrprsSeCode;
+	}
+
+	public String getBizrSeCode() {
+		return bizrSeCode;
+	}
+
+	public void setBizrSeCode(String bizrSeCode) {
+		this.bizrSeCode = bizrSeCode;
+	}
+
+	public String getEmplSeCode() {
+		return emplSeCode;
+	}
+
+	public void setEmplSeCode(String emplSeCode) {
+		this.emplSeCode = emplSeCode;
+	}
+
+	public String getVhclSeCode() {
+		return vhclSeCode;
+	}
+
+	public void setVhclSeCode(String vhclSeCode) {
+		this.vhclSeCode = vhclSeCode;
 	}
 	/**
 	 * fxnum attribute 값을  리턴한다.

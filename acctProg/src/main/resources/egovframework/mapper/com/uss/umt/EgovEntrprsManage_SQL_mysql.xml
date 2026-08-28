@@ -15,6 +15,9 @@
                 (   ESNTL_ID                      ,
                     ENTRPRS_MBER_ID               ,
                     ENTRPRS_SE_CODE              ,
+                    BIZR_SE_CODE                 ,
+                    EMPL_SE_CODE                 ,
+                    VHCL_SE_CODE                 ,
                     BIZRNO                       ,
                     JURIRNO                      ,
                     CMPNY_NM                     ,
@@ -41,6 +44,9 @@
                     #{uniqId},
                     #{entrprsmberId},
                     #{entrprsSeCode},
+                    #{bizrSeCode},
+                    #{emplSeCode},
+                    #{vhclSeCode},
                     #{bizrno},
                     #{jurirno},
 	                #{cmpnyNm},
@@ -84,6 +90,9 @@
             ESNTL_ID,
             ENTRPRS_MBER_ID,
             ENTRPRS_SE_CODE,
+            BIZR_SE_CODE,
+            EMPL_SE_CODE,
+            VHCL_SE_CODE,
             JURIRNO,
             CMPNY_NM,
             CXFC,
@@ -115,6 +124,9 @@
             #{uniqId},
             #{entrprsmberId},
             #{entrprsSeCode},
+            #{bizrSeCode},
+            #{emplSeCode},
+            #{vhclSeCode},
             #{jurirno},
             #{cmpnyNm},
             #{cxfc},
@@ -161,6 +173,49 @@
         )
     </insert>
 
+    <!-- 기업회원 사업자등록번호 1:N 전체 조회 -->
+    <select id="selectEntrprsBizrnoList" resultType="string">
+        SELECT BIZRNO
+          FROM COMTNENTRPRSBIZR
+         WHERE ENTRPRS_MBER_ID = #{_parameter}
+           AND (USE_AT = 'Y' OR USE_AT IS NULL)
+         ORDER BY REGIST_PNTTM ASC, BIZRNO ASC
+    </select>
+
+    <!-- 기업회원ID 기준 사업자등록번호 전체 삭제 -->
+    <delete id="deleteEntrprsBizrByMberId">
+        DELETE FROM COMTNENTRPRSBIZR
+         WHERE ENTRPRS_MBER_ID = #{_parameter}
+    </delete>
+
+    <!-- ESNTL_ID 기준 사업자등록번호 전체 삭제 (기업회원 삭제용) -->
+    <delete id="deleteEntrprsBizrByUniqId">
+        DELETE FROM COMTNENTRPRSBIZR
+         WHERE ENTRPRS_MBER_ID = (
+               SELECT ENTRPRS_MBER_ID
+                 FROM COMTNENTRPRSMBER
+                WHERE ESNTL_ID = #{_parameter}
+         )
+    </delete>
+
+    <!-- 기업회원 사업자등록번호 1건 등록 -->
+    <insert id="insertEntrprsBizr_S">
+        INSERT INTO COMTNENTRPRSBIZR
+        (
+            ENTRPRS_MBER_ID,
+            BIZRNO,
+            USE_AT,
+            REGIST_PNTTM
+        )
+        VALUES
+        (
+            #{entrprsmberId},
+            #{bizrno},
+            'Y',
+            sysdate()
+        )
+    </insert>
+
 
     <select id="selectEntrprsmberIdCnt" resultType="int">
         SELECT COUNT(1)
@@ -182,7 +237,18 @@
                 'USR02'                      userTy,
                 ENTRPRS_MBER_ID               entrprsmberId,
                 ENTRPRS_SE_CODE              entrprsSeCode,
-                BIZRNO                       bizrno,
+                BIZR_SE_CODE                 bizrSeCode,
+                EMPL_SE_CODE                 emplSeCode,
+                VHCL_SE_CODE                 vhclSeCode,
+                COALESCE(
+                    (SELECT B.BIZRNO
+                       FROM COMTNENTRPRSBIZR B
+                      WHERE B.ENTRPRS_MBER_ID = COMTNENTRPRSMBER.ENTRPRS_MBER_ID
+                        AND (B.USE_AT = 'Y' OR B.USE_AT IS NULL)
+                      ORDER BY B.REGIST_PNTTM ASC, B.BIZRNO ASC
+                      LIMIT 1),
+                    BIZRNO
+                )                              bizrno,
                 JURIRNO                      jurirno,
                 CMPNY_NM                     cmpnyNm,
                 CXFC                         cxfc,
@@ -215,6 +281,9 @@
             SET 
                 ENTRPRS_MBER_ID               = #{entrprsmberId},
                 ENTRPRS_SE_CODE              = #{entrprsSeCode},
+                BIZR_SE_CODE                 = #{bizrSeCode},
+                EMPL_SE_CODE                 = #{emplSeCode},
+                VHCL_SE_CODE                 = #{vhclSeCode},
                 BIZRNO                       = #{bizrno},
                 JURIRNO                      = #{jurirno},
                 CMPNY_NM                     = #{cmpnyNm},
@@ -269,7 +338,7 @@
     
     <select id="selectEntrprsMberList" resultType="egovMap">
         SELECT 
-            uniqId, userTy, userId , cmpnyNm, userNm, emailAdres, areaNo, middleTelno, endTelno, moblphonNo, groupId, sttus, sbscrbDe
+            uniqId, userTy, userId , cmpnyNm, userNm, emailAdres, areaNo, middleTelno, endTelno, moblphonNo, groupId, sttus, sbscrbDe, bizrSeCode, emplSeCode, vhclSeCode
         FROM(
             SELECT 
                 ESNTL_ID              as uniqId,
@@ -284,7 +353,10 @@
                 ''                    as moblphonNo,
                 GROUP_ID              as groupId,
                 ENTRPRS_MBER_STTUS    as sttus,
-                DATE_FORMAT(SBSCRB_DE,'%Y-%m-%d') as sbscrbDe
+                DATE_FORMAT(SBSCRB_DE,'%Y-%m-%d') as sbscrbDe,
+                BIZR_SE_CODE           as bizrSeCode,
+                EMPL_SE_CODE           as emplSeCode,
+                VHCL_SE_CODE           as vhclSeCode
             FROM    COMTNENTRPRSMBER
             ) A
         WHERE 1=1

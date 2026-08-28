@@ -167,9 +167,12 @@ function fnSearch(){
 		<col style="width: 10%;">
 		<col style="width: 15%;">
 		<col style="width: 20%;">
-		<col style="width: 13%;">
-		<col style="width: 10%;">
-		<col style="width: ;">
+		<col style="width: 11%;">
+		<col style="width: 8%;">
+		<col style="width: 7%;">
+		<col style="width: 7%;">
+		<col style="width: 8%;">
+		<col style="width: 8%;">
 	</colgroup>
 	<thead>
 	<tr>
@@ -181,6 +184,9 @@ function fnSearch(){
 		<th><spring:message code="comUssUmt.entrprsUserManageList.name" /></th><!-- 신청자이름 -->
 		<th><spring:message code="comUssUmt.entrprsUserManageList.email" /></th><!-- 사용자이메일 -->
 		<th><spring:message code="comUssUmt.entrprsUserManageList.phone" /></th><!-- 전화번호 -->
+		<th>사업자구분</th>
+		<th>직원여부</th>
+		<th>차량구분</th>
 		<th><spring:message code="table.regdate" /></th><!-- 등록일 -->
 		<th><spring:message code="comUssUmt.entrprsUserManageList.sbscrbSttus" /></th><!-- 가입상태 -->
 
@@ -189,7 +195,7 @@ function fnSearch(){
 	<tbody class="ov">
 	<c:if test="${fn:length(resultList) == 0}">
 	<tr>
-		<td colspan="9"><spring:message code="common.nodata.msg" /></td>
+		<td colspan="12"><spring:message code="common.nodata.msg" /></td>
 	</tr>
 	</c:if>
 	<c:forEach var="result" items="${resultList}" varStatus="status">
@@ -204,6 +210,21 @@ function fnSearch(){
 	    <td><c:out value="${result.userNm}"/></td>
 	    <td><c:out value="${result.emailAdres}"/></td>
 	    <td><c:out value="${result.areaNo}"/>-<c:out value="${result.middleTelno}"/>-<c:out value="${result.endTelno}"/></td>
+	    <td>
+	        <c:forEach var="codeItem" items="${bizrSeCode_result}">
+	            <c:if test="${result.bizrSeCode == codeItem.code}"><c:out value="${codeItem.codeNm}"/></c:if>
+	        </c:forEach>
+	    </td>
+	    <td>
+	        <c:forEach var="codeItem" items="${emplSeCode_result}">
+	            <c:if test="${result.emplSeCode == codeItem.code}"><c:out value="${codeItem.codeNm}"/></c:if>
+	        </c:forEach>
+	    </td>
+	    <td>
+	        <c:forEach var="codeItem" items="${vhclSeCode_result}">
+	            <c:if test="${result.vhclSeCode == codeItem.code}"><c:out value="${codeItem.codeNm}"/></c:if>
+	        </c:forEach>
+	    </td>
 	    <td><c:out value="${fn:substring(result.sbscrbDe,0,10)}"/></td>
 	    <td>
               <c:forEach var="entrprsMberSttus_result" items="${entrprsMberSttus_result}" varStatus="status">

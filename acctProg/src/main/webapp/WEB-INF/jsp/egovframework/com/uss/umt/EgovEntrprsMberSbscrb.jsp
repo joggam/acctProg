@@ -287,6 +287,37 @@ function fnInsert(form){
 			</td>
 		</tr>
 		
+		<!-- VAT 사업자구분 -->
+		<tr>
+			<th><label for="bizrSeCode">사업자구분</label></th>
+			<td class="left">
+				<form:select path="bizrSeCode" id="bizrSeCode" title="사업자구분 ${inputSelect}">
+					<form:option value="" label="${inputSelect}"/>
+					<form:options items="${bizrSeCode_result}" itemValue="code" itemLabel="codeNm"/>
+				</form:select>
+			</td>
+		</tr>
+		<!-- VAT 직원여부 -->
+		<tr>
+			<th><label for="emplSeCode">직원여부</label></th>
+			<td class="left">
+				<form:select path="emplSeCode" id="emplSeCode" title="직원여부 ${inputSelect}">
+					<form:option value="" label="${inputSelect}"/>
+					<form:options items="${emplSeCode_result}" itemValue="code" itemLabel="codeNm"/>
+				</form:select>
+			</td>
+		</tr>
+		<!-- VAT 차량구분 -->
+		<tr>
+			<th><label for="vhclSeCode">차량구분</label></th>
+			<td class="left">
+				<form:select path="vhclSeCode" id="vhclSeCode" title="차량구분 ${inputSelect}">
+					<form:option value="" label="${inputSelect}"/>
+					<form:options items="${vhclSeCode_result}" itemValue="code" itemLabel="codeNm"/>
+				</form:select>
+			</td>
+		</tr>
+
 		<!-- 대표이사이름 -->
 		<c:set var="title"><spring:message code="comUssUmt.entrprsUserManageRegist.cxfc"/></c:set>
 		<tr>

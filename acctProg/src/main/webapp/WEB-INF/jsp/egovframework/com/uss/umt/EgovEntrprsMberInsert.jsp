@@ -175,6 +175,37 @@ function fnInsert(form){
 	    }
 	}
 }
+
+
+function fnAddBizrnoRow(value) {
+    var area = document.getElementById("additionalBizrnoArea");
+    if (!area) return;
+
+    var row = document.createElement("div");
+    row.style.marginTop = "4px";
+
+    var input = document.createElement("input");
+    input.type = "text";
+    input.name = "additionalBizrno";
+    input.maxLength = 10;
+    input.size = 20;
+    input.className = "txaIpUmt";
+    input.title = "추가 사업자등록번호";
+    input.value = value || "";
+
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn_s2";
+    btn.style.marginLeft = "4px";
+    btn.appendChild(document.createTextNode("삭제"));
+    btn.onclick = function() {
+        area.removeChild(row);
+    };
+
+    row.appendChild(input);
+    row.appendChild(btn);
+    area.appendChild(row);
+}
 </script>
 <style>
 .modal-content {width: 400px;}
@@ -296,6 +327,37 @@ function fnInsert(form){
 			</td>
 		</tr>
 		
+		<!-- VAT 사업자구분 -->
+		<tr>
+			<th><label for="bizrSeCode">사업자구분</label></th>
+			<td class="left">
+				<form:select path="bizrSeCode" id="bizrSeCode" title="사업자구분 ${inputSelect}">
+					<form:option value="" label="${inputSelect}"/>
+					<form:options items="${bizrSeCode_result}" itemValue="code" itemLabel="codeNm"/>
+				</form:select>
+			</td>
+		</tr>
+		<!-- VAT 직원여부 -->
+		<tr>
+			<th><label for="emplSeCode">직원여부</label></th>
+			<td class="left">
+				<form:select path="emplSeCode" id="emplSeCode" title="직원여부 ${inputSelect}">
+					<form:option value="" label="${inputSelect}"/>
+					<form:options items="${emplSeCode_result}" itemValue="code" itemLabel="codeNm"/>
+				</form:select>
+			</td>
+		</tr>
+		<!-- VAT 차량구분 -->
+		<tr>
+			<th><label for="vhclSeCode">차량구분</label></th>
+			<td class="left">
+				<form:select path="vhclSeCode" id="vhclSeCode" title="차량구분 ${inputSelect}">
+					<form:option value="" label="${inputSelect}"/>
+					<form:options items="${vhclSeCode_result}" itemValue="code" itemLabel="codeNm"/>
+				</form:select>
+			</td>
+		</tr>
+
 		<!-- 대표이사이름 -->
 		<c:set var="title"><spring:message code="comUssUmt.entrprsUserManageRegist.cxfc"/></c:set>
 		<tr>
@@ -310,8 +372,20 @@ function fnInsert(form){
 		<tr>
 			<th><label for="bizrno">${title}</label> <span class="pilsu">*</span></th>
 			<td class="left">
-                    <form:input path="bizrno" id="bizrno" title="${title} ${inputTxt}" cssClass="txaIpUmt" size="20"  maxlength="10" />
+                    <form:input path="bizrno" id="bizrno" title="${title} ${inputTxt}" cssClass="txaIpUmt" size="20" maxlength="10" />
+                    <button type="button" class="btn_s2" onclick="fnAddBizrnoRow('');">추가</button>
                     <div><form:errors path="bizrno" cssClass="error" /></div>
+
+                    <div id="additionalBizrnoArea">
+                        <c:forEach var="bizrnoItem" items="${additionalBizrnoList}">
+                            <div style="margin-top:4px;">
+                                <input type="text" name="additionalBizrno"
+                                       value="<c:out value='${bizrnoItem}'/>"
+                                       class="txaIpUmt" size="20" maxlength="10" title="추가 사업자등록번호" />
+                                <button type="button" class="btn_s2" onclick="this.parentNode.parentNode.removeChild(this.parentNode);">삭제</button>
+                            </div>
+                        </c:forEach>
+                    </div>
 			</td>
 		</tr>
 		

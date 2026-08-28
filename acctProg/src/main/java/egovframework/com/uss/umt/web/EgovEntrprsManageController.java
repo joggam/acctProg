@@ -1,7 +1,10 @@
 package egovframework.com.uss.umt.web;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -25,6 +28,7 @@ import egovframework.com.cmm.annotation.IncludedInfo;
 import egovframework.com.cmm.service.CmmnDetailCode;
 import egovframework.com.cmm.service.EgovCmmUseService;
 import egovframework.com.cmm.util.EgovUserDetailsHelper;
+import egovframework.com.uss.umt.service.EgovEntrprsBizrManageService;
 import egovframework.com.uss.umt.service.EgovEntrprsManageService;
 import egovframework.com.uss.umt.service.EntrprsManageVO;
 import egovframework.com.uss.umt.service.StplatVO;
@@ -61,6 +65,10 @@ public class EgovEntrprsManageController {
     /** entrprsManageService */
     @Resource(name = "entrprsManageService")
     private EgovEntrprsManageService entrprsManageService;
+
+    /** 기업회원 사업자등록번호 1:N 관리 Service */
+    @Resource(name = "entrprsBizrManageService")
+    private EgovEntrprsBizrManageService entrprsBizrManageService;
 
     /** cmmUseService */
     @Resource(name = "EgovCmmUseService")
@@ -113,6 +121,27 @@ public class EgovEntrprsManageController {
     @ModelAttribute("indutyCode_result")
     private List<CmmnDetailCode> getIndutyCode_result(ComDefaultCodeVO comDefaultCodeVO) throws Exception {
         comDefaultCodeVO.setCodeId("COM027");
+        return cmmUseService.selectCmmCodeDetail(comDefaultCodeVO);
+    }
+
+    /** 사업자구분 조회 목록 (VAT001: 1 법인, 2 개인) */
+    @ModelAttribute("bizrSeCode_result")
+    private List<CmmnDetailCode> getBizrSeCodeResult(ComDefaultCodeVO comDefaultCodeVO) throws Exception {
+        comDefaultCodeVO.setCodeId("VAT001");
+        return cmmUseService.selectCmmCodeDetail(comDefaultCodeVO);
+    }
+
+    /** 직원여부 조회 목록 (VAT002: 1 유, 2 무) */
+    @ModelAttribute("emplSeCode_result")
+    private List<CmmnDetailCode> getEmplSeCodeResult(ComDefaultCodeVO comDefaultCodeVO) throws Exception {
+        comDefaultCodeVO.setCodeId("VAT002");
+        return cmmUseService.selectCmmCodeDetail(comDefaultCodeVO);
+    }
+
+    /** 차량구분 조회 목록 (VAT003: 1 무, 2 불공차량 유, 3 공제차량 유) */
+    @ModelAttribute("vhclSeCode_result")
+    private List<CmmnDetailCode> getVhclSeCodeResult(ComDefaultCodeVO comDefaultCodeVO) throws Exception {
+        comDefaultCodeVO.setCodeId("VAT003");
         return cmmUseService.selectCmmCodeDetail(comDefaultCodeVO);
     }
 
@@ -175,13 +204,19 @@ public class EgovEntrprsManageController {
      * @throws Exception
      */
     @RequestMapping("/uss/umt/EgovEntrprsMberInsert.do")
-    public String insertEntrprsMber(@ModelAttribute("entrprsManageVO") EntrprsManageVO entrprsManageVO, BindingResult bindingResult, Model model) throws Exception {
+    public String insertEntrprsMber(@ModelAttribute("entrprsManageVO") EntrprsManageVO entrprsManageVO,
+                                   @RequestParam(value = "additionalBizrno", required = false) List<String> additionalBizrno,
+                                   BindingResult bindingResult, Model model) throws Exception {
 
         // 미인증 사용자에 대한 보안처리
         Boolean isAuthenticated = EgovUserDetailsHelper.isAuthenticated();
         if (!isAuthenticated) {
             return "index";
         }
+
+        entrprsManageVO.setBizrno(normalizeBizrno(entrprsManageVO.getBizrno()));
+        List<String> bizrnoList = buildBizrnoList(entrprsManageVO.getBizrno(), additionalBizrno, bindingResult);
+        model.addAttribute("additionalBizrnoList", getAdditionalBizrnoList(bizrnoList));
 
         beanValidator.validate(entrprsManageVO, bindingResult);
         if (bindingResult.hasErrors()) {
@@ -193,6 +228,10 @@ public class EgovEntrprsManageController {
                 entrprsManageVO.setGroupId(null);
             }
             entrprsManageService.insertEntrprsmber(entrprsManageVO);
+
+            // 사업자등록번호는 COMTNENTRPRSBIZR에 1:N 구조로 동기화
+            entrprsBizrManageService.replaceBizrnoList(entrprsManageVO.getEntrprsmberId(), bizrnoList);
+
             // Exception 없이 진행시 등록성공메시지
             model.addAttribute("resultMsg", "success.common.insert");
         }
@@ -221,6 +260,14 @@ public class EgovEntrprsManageController {
 
         EntrprsManageVO entrprsManageVO = new EntrprsManageVO();
         entrprsManageVO = entrprsManageService.selectEntrprsmber(entrprsmberId);
+
+        // COMTNENTRPRSBIZR에서 해당 기업회원의 사업자등록번호 전체 조회
+        List<String> bizrnoList = entrprsBizrManageService.selectBizrnoList(entrprsManageVO.getEntrprsmberId());
+        if (bizrnoList != null && !bizrnoList.isEmpty()) {
+            // 기존 validator/JSP 호환을 위해 첫 번째 번호는 기존 bizrno 필드에 유지
+            entrprsManageVO.setBizrno(bizrnoList.get(0));
+        }
+        model.addAttribute("additionalBizrnoList", getAdditionalBizrnoList(bizrnoList));
         model.addAttribute("entrprsManageVO", entrprsManageVO);
         model.addAttribute("userSearchVO", userSearchVO);
 
@@ -299,13 +346,19 @@ public class EgovEntrprsManageController {
      * @throws Exception
      */
     @RequestMapping("/uss/umt/EgovEntrprsMberSelectUpdt.do")
-    public String updateEntrprsMber(@ModelAttribute("entrprsManageVO") EntrprsManageVO entrprsManageVO, BindingResult bindingResult, Model model) throws Exception {
+    public String updateEntrprsMber(@ModelAttribute("entrprsManageVO") EntrprsManageVO entrprsManageVO,
+                                   @RequestParam(value = "additionalBizrno", required = false) List<String> additionalBizrno,
+                                   BindingResult bindingResult, Model model) throws Exception {
 
         // 미인증 사용자에 대한 보안처리
         Boolean isAuthenticated = EgovUserDetailsHelper.isAuthenticated();
         if (!isAuthenticated) {
             return "index";
         }
+
+        entrprsManageVO.setBizrno(normalizeBizrno(entrprsManageVO.getBizrno()));
+        List<String> bizrnoList = buildBizrnoList(entrprsManageVO.getBizrno(), additionalBizrno, bindingResult);
+        model.addAttribute("additionalBizrnoList", getAdditionalBizrnoList(bizrnoList));
 
         beanValidator.validate(entrprsManageVO, bindingResult);
         if (bindingResult.hasErrors()) {
@@ -316,6 +369,10 @@ public class EgovEntrprsManageController {
                 entrprsManageVO.setGroupId(null);
             }
             entrprsManageService.updateEntrprsmber(entrprsManageVO);
+
+            // 수정된 사업자등록번호 목록을 COMTNENTRPRSBIZR에 동기화
+            entrprsBizrManageService.replaceBizrnoList(entrprsManageVO.getEntrprsmberId(), bizrnoList);
+
             // Exception 없이 진행시 수정성공메시지
             model.addAttribute("resultMsg", "success.common.update");
             return "forward:/uss/umt/EgovEntrprsMberManage.do";
@@ -348,6 +405,14 @@ public class EgovEntrprsManageController {
         if (StringUtils.isNotEmpty(onepassUserkey) || StringUtils.isNotEmpty(onepassIntfToken)) {
             model.addAttribute("resultMsg", "digital.onepass.delete.alert");
         } else {
+            // 부모 기업회원 삭제 전에 1:N 사업자등록번호 자식 데이터부터 삭제
+            String[] deleteTargets = checkedIdForDel.split(",");
+            for (String deleteTarget : deleteTargets) {
+                String[] parts = deleteTarget.split(":", 2);
+                if (parts.length == 2 && "USR02".equals(parts[0])) {
+                    entrprsBizrManageService.deleteBizrnoByUniqId(parts[1]);
+                }
+            }
             entrprsManageService.deleteEntrprsmber(checkedIdForDel);
             model.addAttribute("resultMsg", "success.common.delete");
         }
@@ -577,5 +642,59 @@ public class EgovEntrprsManageController {
 		model.addAttribute("entrprsManageVO", entrprsManageVO);
 		return "egovframework/com/uss/umt/EgovEntrprsPasswordUpdt";
 	}
+
+
+    /**
+     * 대표 사업자등록번호 + 추가 사업자등록번호를 하나의 중복 없는 목록으로 만든다.
+     */
+    private List<String> buildBizrnoList(String primaryBizrno, List<String> additionalBizrno,
+                                         BindingResult bindingResult) {
+        Set<String> bizrnoSet = new LinkedHashSet<String>();
+
+        String primary = normalizeBizrno(primaryBizrno);
+        if (!primary.isEmpty()) {
+            if (!primary.matches("\\d{10}")) {
+                bindingResult.rejectValue("bizrno", "invalid.bizrno", "사업자등록번호는 숫자 10자리여야 합니다.");
+            } else {
+                bizrnoSet.add(primary);
+            }
+        }
+
+        if (additionalBizrno != null) {
+            for (String value : additionalBizrno) {
+                String bizrno = normalizeBizrno(value);
+                if (bizrno.isEmpty()) {
+                    continue;
+                }
+                if (!bizrno.matches("\\d{10}")) {
+                    bindingResult.rejectValue("bizrno", "invalid.bizrno", "추가 사업자등록번호도 숫자 10자리여야 합니다.");
+                    continue;
+                }
+                bizrnoSet.add(bizrno);
+            }
+        }
+
+        return new ArrayList<String>(bizrnoSet);
+    }
+
+    /**
+     * 화면 재표시용: 첫 번째 대표 사업자등록번호를 제외한 나머지 번호만 반환한다.
+     */
+    private List<String> getAdditionalBizrnoList(List<String> bizrnoList) {
+        List<String> result = new ArrayList<String>();
+        if (bizrnoList != null && bizrnoList.size() > 1) {
+            result.addAll(bizrnoList.subList(1, bizrnoList.size()));
+        }
+        return result;
+    }
+
+    private String normalizeBizrno(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replaceAll("[^0-9]", "");
+    }
+
+
 
 }

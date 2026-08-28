@@ -1,6 +1,8 @@
 package egovframework.com.uss.umt.service.impl;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Repository;
 
@@ -141,4 +143,28 @@ public class EntrprsManageDAO extends EgovComAbstractDAO{
     public void updateLockIncorrect(EntrprsManageVO entrprsManageVO) {
         update("entrprsManageDAO.updateLockIncorrect", entrprsManageVO);
     }
+
+    /** 기업회원ID 기준 사업자등록번호 전체 조회 */
+    public List<String> selectEntrprsBizrnoList(String entrprsmberId) {
+        return selectList("entrprsManageDAO.selectEntrprsBizrnoList", entrprsmberId);
+    }
+
+    /** 기업회원ID 기준 사업자등록번호 전체 삭제 */
+    public void deleteEntrprsBizrByMberId(String entrprsmberId) {
+        delete("entrprsManageDAO.deleteEntrprsBizrByMberId", entrprsmberId);
+    }
+
+    /** 고유ID(ESNTL_ID) 기준 사업자등록번호 전체 삭제 */
+    public void deleteEntrprsBizrByUniqId(String uniqId) {
+        delete("entrprsManageDAO.deleteEntrprsBizrByUniqId", uniqId);
+    }
+
+    /** 기업회원 사업자등록번호 1건 등록 */
+    public void insertEntrprsBizr(String entrprsmberId, String bizrno) {
+        Map<String, Object> param = new HashMap<String, Object>();
+        param.put("entrprsmberId", entrprsmberId);
+        param.put("bizrno", bizrno);
+        insert("entrprsManageDAO.insertEntrprsBizr_S", param);
+    }
+
 }

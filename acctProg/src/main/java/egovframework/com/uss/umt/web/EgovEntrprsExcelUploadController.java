@@ -45,6 +45,9 @@ import egovframework.com.uss.umt.service.EntrprsManageVO;
  * 8. 대표이사이름
  * 9. 신청자명
  * 10. 대표자 연락처
+ * 11. 사업자구분 (VAT001: 1 법인, 2 개인)
+ * 12. 직원여부 (VAT002: 1 유, 2 무)
+ * 13. 차량구분 (VAT003: 1 무, 2 불공차량 유, 3 공제차량 유)
  */
 @Controller
 public class EgovEntrprsExcelUploadController {
@@ -52,11 +55,11 @@ public class EgovEntrprsExcelUploadController {
     private static final long MAX_FILE_SIZE = 10L * 1024L * 1024L;
 
     private static final String[] HEADER_KR = {
-            "기업회원ID", "비밀번호", "사업자등록번호", "법인등록번호", "회사명", "주민등록번호 앞 6자리", "주민등록번호 2번째 값", "대표이사이름", "신청자명", "대표자 연락처"
+            "기업회원ID", "비밀번호", "사업자등록번호", "법인등록번호", "회사명", "주민등록번호 앞 6자리", "주민등록번호 2번째 값", "대표이사이름", "신청자명", "대표자 연락처", "사업자구분", "직원여부", "차량구분"
     };
 
     private static final String[] HEADER_DB = {
-            "ENTRPRS_MBER_ID", "ENTRPRS_MBER_PASSWORD", "BIZRNO", "JURIRNO", "CMPNY_NM", "APPLCNT_IHIDNUM", "APPLCNT_IHIDNUM2", "CXFC", "APPLCNT_NM", "REPRESENTATIVE_PHONE"
+            "ENTRPRS_MBER_ID", "ENTRPRS_MBER_PASSWORD", "BIZRNO", "JURIRNO", "CMPNY_NM", "APPLCNT_IHIDNUM", "APPLCNT_IHIDNUM2", "CXFC", "APPLCNT_NM", "REPRESENTATIVE_PHONE", "BIZR_SE_CODE", "EMPL_SE_CODE", "VHCL_SE_CODE"
     };
 
     @Resource(name = "entrprsManageService")
@@ -126,6 +129,9 @@ public class EgovEntrprsExcelUploadController {
             sheet.setColumnWidth(7, 22 * 256);
             sheet.setColumnWidth(8, 22 * 256);
             sheet.setColumnWidth(9, 24 * 256);
+            sheet.setColumnWidth(10, 18 * 256);
+            sheet.setColumnWidth(11, 18 * 256);
+            sheet.setColumnWidth(12, 22 * 256);
 
             workbook.write(out);
             out.flush();
@@ -180,7 +186,7 @@ public class EgovEntrprsExcelUploadController {
             Sheet sheet = workbook.getSheetAt(0);
             if (!isValidHeader(sheet.getRow(0), formatter)) {
                 model.addAttribute("resultMessage",
-                        "엑셀 양식이 올바르지 않습니다. 양식 다운로드 후 기업회원ID / 비밀번호 / 사업자등록번호 / 법인등록번호 / 회사명 / 주민등록번호 앞 6자리 / 주민등록번호 2번째 값 / 대표이사이름 / 신청자명 / 대표자 연락처 순서로 작성해 주세요.");
+                        "엑셀 양식이 올바르지 않습니다. 양식 다운로드 후 기업회원ID / 비밀번호 / 사업자등록번호 / 법인등록번호 / 회사명 / 주민등록번호 앞 6자리 / 주민등록번호 2번째 값 / 대표이사이름 / 신청자명 / 대표자 연락처 / 사업자구분 / 직원여부 / 차량구분 순서로 작성해 주세요.");
                 return "egovframework/com/uss/umt/EgovEntrprsMberExcelUpload";
             }
 
@@ -206,6 +212,9 @@ public class EgovEntrprsExcelUploadController {
                 String cxfc = getCellValue(row, 7, formatter);
                 String applcntNm = getCellValue(row, 8, formatter);
                 String representativePhone = getCellValue(row, 9, formatter);
+                String bizrSeCode = normalizeBizrSeCode(getCellValue(row, 10, formatter));
+                String emplSeCode = normalizeEmplSeCode(getCellValue(row, 11, formatter));
+                String vhclSeCode = normalizeVhclSeCode(getCellValue(row, 12, formatter));
 
                 String validationMessage = validateRow(
                         entrprsmberId,
@@ -217,7 +226,10 @@ public class EgovEntrprsExcelUploadController {
                         applcntIhidnum2,
                         cxfc,
                         applcntNm,
-                        representativePhone);
+                        representativePhone,
+                        bizrSeCode,
+                        emplSeCode,
+                        vhclSeCode);
                 if (validationMessage != null) {
                     failCount++;
                     errorList.add(excelRowNo + "행: " + validationMessage);
@@ -241,7 +253,10 @@ public class EgovEntrprsExcelUploadController {
                         applcntIhidnum2,
                         cxfc,
                         applcntNm,
-                        representativePhone);
+                        representativePhone,
+                        bizrSeCode,
+                        emplSeCode,
+                        vhclSeCode);
 
                 boolean firstMemberRow = fileIdSet.add(entrprsmberId);
 
@@ -292,7 +307,10 @@ public class EgovEntrprsExcelUploadController {
                                                          String applcntIhidnum2,
                                                          String cxfc,
                                                          String applcntNm,
-                                                         String representativePhone) {
+                                                         String representativePhone,
+                                                         String bizrSeCode,
+                                                         String emplSeCode,
+                                                         String vhclSeCode) {
         EntrprsManageVO vo = new EntrprsManageVO();
 
         // 엑셀 입력값
@@ -305,6 +323,9 @@ public class EgovEntrprsExcelUploadController {
         vo.setApplcntIhidnum2(applcntIhidnum2);
         vo.setCxfc(cxfc);
         vo.setApplcntNm(applcntNm);
+        vo.setBizrSeCode(bizrSeCode);
+        vo.setEmplSeCode(emplSeCode);
+        vo.setVhclSeCode(vhclSeCode);
 
         // 대표자 연락처는 선택값이다.
         // DB 컬럼이 NOT NULL이므로 미입력 시 NULL 대신 빈 문자열을 저장한다.
@@ -384,6 +405,28 @@ public class EgovEntrprsExcelUploadController {
         return value.replaceAll("[^0-9]", "");
     }
 
+    private String normalizeBizrSeCode(String value) {
+        String v = value == null ? "" : value.trim();
+        if ("법인".equals(v)) return "1";
+        if ("개인".equals(v)) return "2";
+        return v;
+    }
+
+    private String normalizeEmplSeCode(String value) {
+        String v = value == null ? "" : value.trim();
+        if ("유".equals(v)) return "1";
+        if ("무".equals(v)) return "2";
+        return v;
+    }
+
+    private String normalizeVhclSeCode(String value) {
+        String v = value == null ? "" : value.trim();
+        if ("무".equals(v)) return "1";
+        if ("불공차량 유".equals(v) || "불공차량유".equals(v)) return "2";
+        if ("공제차량 유".equals(v) || "공제차량유".equals(v)) return "3";
+        return v;
+    }
+
     private String validateRow(String entrprsmberId,
                                String entrprsMberPassword,
                                String bizrno,
@@ -393,7 +436,10 @@ public class EgovEntrprsExcelUploadController {
                                String applcntIhidnum2,
                                String cxfc,
                                String applcntNm,
-                               String representativePhone) {
+                               String representativePhone,
+                               String bizrSeCode,
+                               String emplSeCode,
+                               String vhclSeCode) {
         if (entrprsmberId == null || entrprsmberId.isEmpty()) {
             return "기업회원ID는 필수입니다.";
         }
@@ -442,6 +488,16 @@ public class EgovEntrprsExcelUploadController {
         if (applcntNm.length() > 50) {
             return "신청자명은 50자 이하로 입력해 주세요.";
         }
+        if (!"1".equals(bizrSeCode) && !"2".equals(bizrSeCode)) {
+            return "사업자구분은 법인(1) 또는 개인(2)으로 입력해 주세요.";
+        }
+        if (!"1".equals(emplSeCode) && !"2".equals(emplSeCode)) {
+            return "직원여부는 유(1) 또는 무(2)로 입력해 주세요.";
+        }
+        if (!"1".equals(vhclSeCode) && !"2".equals(vhclSeCode) && !"3".equals(vhclSeCode)) {
+            return "차량구분은 무(1), 불공차량 유(2), 공제차량 유(3) 중 하나로 입력해 주세요.";
+        }
+
         // 대표자 연락처는 선택값이다. 입력된 경우에만 형식을 검증한다.
         if (representativePhone != null && !representativePhone.trim().isEmpty()) {
             String[] phone = representativePhone.split("-", -1);
