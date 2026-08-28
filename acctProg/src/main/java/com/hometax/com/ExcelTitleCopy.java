@@ -7,12 +7,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.HashMap;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
@@ -79,6 +88,17 @@ public class ExcelTitleCopy {
 
     public static File copyExcelByTitle(
             File sourceFile) throws Exception {
+
+        return copyExcelByTitle(
+                sourceFile,
+                new VatCardCondition2Classifier.BusinessContext()
+        );
+    }
+
+
+    public static File copyExcelByTitle(
+            File sourceFile,
+            VatCardCondition2Classifier.BusinessContext condition2BusinessContext) throws Exception {
 
 
         if (sourceFile == null) {
@@ -412,6 +432,11 @@ public class ExcelTitleCopy {
             DataFormatter formatter =
                     new DataFormatter();
 
+            // 조건2 ROW 배경색용 스타일 캐시.
+            // HSSF 스타일 개수 제한을 피하기 위해 원본스타일+색상 조합을 재사용한다.
+            Map<String, CellStyle> condition2RowStyleCache =
+                    new HashMap<String, CellStyle>();
+
 
             // =================================================
             // 대상 TITLE → COLUMN
@@ -538,6 +563,10 @@ public class ExcelTitleCopy {
                     new LinkedHashMap<Integer, String>();
 
 
+            Map<String, Integer> sourceColumnByTitle =
+                    new LinkedHashMap<String, Integer>();
+
+
             System.out.println();
 
             System.out.println(
@@ -583,6 +612,11 @@ public class ExcelTitleCopy {
                 if (sourceTitle.isEmpty()) {
 
                     continue;
+                }
+
+
+                if (!sourceColumnByTitle.containsKey(sourceTitle)) {
+                    sourceColumnByTitle.put(sourceTitle, sourceCol);
                 }
 
 
@@ -740,34 +774,86 @@ public class ExcelTitleCopy {
             int copiedRowCount = 0;
 
 
-            for (
-                    int sourceRowIndex =
-                            SOURCE_DATA_START_ROW;
-
-                    sourceRowIndex <=
-                            sourceLastRow;
-
-                    sourceRowIndex++
-            ) {
+            // =================================================
+            // 요구사항 1
+            // 거래처명(홈택스 가맹점명) 가나다순 정렬
+            // =================================================
+            List<Row> sourceDataRows =
+                    new ArrayList<Row>();
 
 
-                Row sourceRow =
-                        sourceSheet
-                                .getRow(
-                                        sourceRowIndex
-                                );
+            for (int sourceRowIndex = SOURCE_DATA_START_ROW;
+                    sourceRowIndex <= sourceLastRow;
+                    sourceRowIndex++) {
 
+                Row row = sourceSheet.getRow(sourceRowIndex);
 
-                if (sourceRow == null
-                        || isEmptyRow(
-                                sourceRow,
-                                columnMapping,
-                                formatter
-                        )) {
-
-
+                if (row == null
+                        || isEmptyRow(row, columnMapping, formatter)) {
                     continue;
                 }
+
+                sourceDataRows.add(row);
+            }
+
+
+            final Integer merchantNameSourceCol =
+                    sourceColumnByTitle.get(
+                            normalizeTitle("가맹점명")
+                    );
+
+
+            final Collator koreanCollator =
+                    Collator.getInstance(
+                            Locale.KOREAN
+                    );
+
+
+            koreanCollator.setStrength(
+                    Collator.PRIMARY
+            );
+
+
+            sourceDataRows.sort(
+                    new Comparator<Row>() {
+                        @Override
+                        public int compare(Row row1, Row row2) {
+                            String name1 = getSourceValueByColumn(
+                                    row1,
+                                    merchantNameSourceCol,
+                                    formatter
+                            );
+
+                            String name2 = getSourceValueByColumn(
+                                    row2,
+                                    merchantNameSourceCol,
+                                    formatter
+                            );
+
+                            if (name1.length() == 0 && name2.length() > 0) {
+                                return 1;
+                            }
+
+                            if (name1.length() > 0 && name2.length() == 0) {
+                                return -1;
+                            }
+
+                            int compared = koreanCollator.compare(name1, name2);
+
+                            if (compared != 0) {
+                                return compared;
+                            }
+
+                            return Integer.compare(
+                                    row1.getRowNum(),
+                                    row2.getRowNum()
+                            );
+                        }
+                    }
+            );
+
+
+            for (Row sourceRow : sourceDataRows) {
 
 
                 Row targetRow =
@@ -895,7 +981,7 @@ public class ExcelTitleCopy {
 
 
                 // =============================================
-                // 고정값
+                // 카드종류 고정값 + 조건2 분류 결과
                 // =============================================
 
                 // 카드종류 = 3
@@ -907,30 +993,71 @@ public class ExcelTitleCopy {
                 );
 
 
-                // 부가세공제여부 = 공제
-                setFixedTextValue(
+                VatCardCondition2Classifier.RowContext rowContext =
+                        new VatCardCondition2Classifier.RowContext()
+                                .setMerchantName(
+                                        getSourceValueByTitle(
+                                                sourceRow,
+                                                sourceColumnByTitle,
+                                                "가맹점명",
+                                                formatter
+                                        )
+                                )
+                                .setMerchantType(
+                                        getSourceValueByTitle(
+                                                sourceRow,
+                                                sourceColumnByTitle,
+                                                "가맹점유형",
+                                                formatter
+                                        )
+                                )
+                                .setSupplyAmount(
+                                        getSourceNumberByTitle(
+                                                sourceRow,
+                                                sourceColumnByTitle,
+                                                "공급가액",
+                                                formatter
+                                        )
+                                );
+
+
+                VatCardCondition2Classifier.Result condition2Result =
+                        VatCardCondition2Classifier.classify(
+                                condition2BusinessContext,
+                                rowContext
+                        );
+
+
+                setNullableTextValue(
                         targetSheet,
                         targetRow,
                         vatDeductionCol,
-                        "공제"
+                        condition2Result.getVatDeduction()
                 );
 
 
-                // 부가세유형 = 57
-                setFixedNumberValue(
+                setNullableNumberValue(
                         targetSheet,
                         targetRow,
                         vatTypeCol,
-                        57
+                        condition2Result.getVatType()
                 );
 
 
-                // 계정과목 = 830
-                setFixedNumberValue(
+                setNullableNumberValue(
                         targetSheet,
                         targetRow,
                         accountCol,
-                        830
+                        condition2Result.getAccountCode()
+                );
+
+
+                applyCondition2RowBackground(
+                        targetWorkbook,
+                        targetSheet,
+                        targetRow,
+                        condition2Result.getRowColor(),
+                        condition2RowStyleCache
                 );
 
 
@@ -1269,6 +1396,190 @@ public class ExcelTitleCopy {
 
 
         return targetCell;
+    }
+
+
+    // =========================================================
+    // 조건2 ROW 배경색 적용
+    //
+    // 조건2(3).xlsx의 'ROW 색' 컬럼 기준:
+    //  - 1번 사업자(법인/개인) : 노란색
+    //  - 5번 등록 X            : 주황색 (조건1 DB 연결 후)
+    //  - 6번 100만 초과        : 초록색
+    //  - X                      : 별도 색 변경 없음
+    //
+    // ROW 전체는 업로드 양식의 TITLE 열 범위까지 칠한다.
+    // =========================================================
+
+    private static void applyCondition2RowBackground(
+            Workbook workbook,
+            Sheet targetSheet,
+            Row targetRow,
+            VatCardCondition2Classifier.RowColor rowColor,
+            Map<String, CellStyle> styleCache) {
+
+        if (workbook == null
+                || targetSheet == null
+                || targetRow == null
+                || rowColor == null
+                || VatCardCondition2Classifier.RowColor.NONE.equals(rowColor)) {
+            return;
+        }
+
+        short indexedColor;
+
+        if (VatCardCondition2Classifier.RowColor.YELLOW.equals(rowColor)) {
+            indexedColor = IndexedColors.YELLOW.getIndex();
+        } else if (VatCardCondition2Classifier.RowColor.ORANGE.equals(rowColor)) {
+            indexedColor = IndexedColors.ORANGE.getIndex();
+        } else if (VatCardCondition2Classifier.RowColor.GREEN.equals(rowColor)) {
+            indexedColor = IndexedColors.BRIGHT_GREEN.getIndex();
+        } else {
+            return;
+        }
+
+        Row titleRow = targetSheet.getRow(TARGET_TITLE_ROW);
+        if (titleRow == null || titleRow.getLastCellNum() <= 0) {
+            return;
+        }
+
+        int lastColumnExclusive = titleRow.getLastCellNum();
+
+        for (int col = 0; col < lastColumnExclusive; col++) {
+            Cell cell = getOrCreateTargetCell(targetSheet, targetRow, col);
+            CellStyle baseStyle = cell.getCellStyle();
+            short baseStyleIndex = baseStyle == null ? 0 : baseStyle.getIndex();
+            String cacheKey = baseStyleIndex + "_" + indexedColor;
+
+            CellStyle coloredStyle = styleCache.get(cacheKey);
+            if (coloredStyle == null) {
+                coloredStyle = workbook.createCellStyle();
+                if (baseStyle != null) {
+                    coloredStyle.cloneStyleFrom(baseStyle);
+                }
+                coloredStyle.setFillForegroundColor(indexedColor);
+                coloredStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                styleCache.put(cacheKey, coloredStyle);
+            }
+
+            cell.setCellStyle(coloredStyle);
+        }
+    }
+
+
+    // =========================================================
+    // SOURCE 조건값 조회
+    // =========================================================
+
+    private static String getSourceValueByTitle(
+            Row row,
+            Map<String, Integer> sourceColumnByTitle,
+            String title,
+            DataFormatter formatter) {
+
+        Integer sourceCol =
+                sourceColumnByTitle.get(
+                        normalizeTitle(title)
+                );
+
+        return getSourceValueByColumn(
+                row,
+                sourceCol,
+                formatter
+        );
+    }
+
+
+    private static String getSourceValueByColumn(
+            Row row,
+            Integer sourceCol,
+            DataFormatter formatter) {
+
+        if (row == null || sourceCol == null) {
+            return "";
+        }
+
+        return getCellAsString(
+                row.getCell(sourceCol.intValue()),
+                formatter
+        );
+    }
+
+
+    private static double getSourceNumberByTitle(
+            Row row,
+            Map<String, Integer> sourceColumnByTitle,
+            String title,
+            DataFormatter formatter) {
+
+        String value = getSourceValueByTitle(
+                row,
+                sourceColumnByTitle,
+                title,
+                formatter
+        );
+
+        if (value.length() == 0) {
+            return 0d;
+        }
+
+        String numberOnly =
+                value.replaceAll(
+                        "[^0-9\\.-]",
+                        ""
+                );
+
+        if (numberOnly.length() == 0
+                || "-".equals(numberOnly)
+                || ".".equals(numberOnly)) {
+            return 0d;
+        }
+
+        try {
+            return Double.parseDouble(numberOnly);
+        } catch (NumberFormatException e) {
+            return 0d;
+        }
+    }
+
+
+    private static void setNullableTextValue(
+            Sheet targetSheet,
+            Row targetRow,
+            int targetCol,
+            String value) {
+
+        Cell cell = getOrCreateTargetCell(
+                targetSheet,
+                targetRow,
+                targetCol
+        );
+
+        if (value == null) {
+            cell.setBlank();
+        } else {
+            cell.setCellValue(value);
+        }
+    }
+
+
+    private static void setNullableNumberValue(
+            Sheet targetSheet,
+            Row targetRow,
+            int targetCol,
+            Integer value) {
+
+        Cell cell = getOrCreateTargetCell(
+                targetSheet,
+                targetRow,
+                targetCol
+        );
+
+        if (value == null) {
+            cell.setBlank();
+        } else {
+            cell.setCellValue(value.doubleValue());
+        }
     }
 
 

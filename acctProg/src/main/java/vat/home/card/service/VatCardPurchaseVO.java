@@ -19,6 +19,16 @@ public class VatCardPurchaseVO extends VatCardPurchaseDefaultVO {
     /** 상호명 */
     private String cmpnyNm;
 
+
+    /** 사업자구분 공통코드값 : VAT001 (1 법인, 2 개인) */
+    private String bizrSeCode;
+
+    /** 직원여부 공통코드값 : VAT002 (1 유, 2 무) */
+    private String emplSeCode;
+
+    /** 차량구분 공통코드값 : VAT003 (1 무, 2 불공차량 유, 3 공제차량 유) */
+    private String vhclSeCode;
+
     /** 기업회원 아이디 */
     private String entrprsmberId;
 
@@ -45,6 +55,16 @@ public class VatCardPurchaseVO extends VatCardPurchaseDefaultVO {
 
     public String getCmpnyNm() { return cmpnyNm; }
     public void setCmpnyNm(String cmpnyNm) { this.cmpnyNm = cmpnyNm; }
+
+
+    public String getBizrSeCode() { return bizrSeCode; }
+    public void setBizrSeCode(String bizrSeCode) { this.bizrSeCode = bizrSeCode; }
+
+    public String getEmplSeCode() { return emplSeCode; }
+    public void setEmplSeCode(String emplSeCode) { this.emplSeCode = emplSeCode; }
+
+    public String getVhclSeCode() { return vhclSeCode; }
+    public void setVhclSeCode(String vhclSeCode) { this.vhclSeCode = vhclSeCode; }
 
     public String getEntrprsmberId() { return entrprsmberId; }
     public void setEntrprsmberId(String entrprsmberId) { this.entrprsmberId = entrprsmberId; }

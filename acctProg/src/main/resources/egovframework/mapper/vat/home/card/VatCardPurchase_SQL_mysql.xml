@@ -13,6 +13,9 @@
             , B.BIZR_SEQ            AS bizrSeq
             , B.BIZRNO              AS bizrno
             , M.CMPNY_NM            AS cmpnyNm
+            , M.BIZR_SE_CODE        AS bizrSeCode
+            , M.EMPL_SE_CODE        AS emplSeCode
+            , M.VHCL_SE_CODE        AS vhclSeCode
             , M.ENTRPRS_MBER_ID     AS entrprsmberId
             , M.APPLCNT_IHIDNUM2    AS applcntIhidnum2
         FROM COMTNENTRPRSMBER M
@@ -59,6 +62,9 @@
             , B.BIZR_SEQ            AS bizrSeq
             , B.BIZRNO              AS bizrno
             , M.CMPNY_NM            AS cmpnyNm
+            , M.BIZR_SE_CODE        AS bizrSeCode
+            , M.EMPL_SE_CODE        AS emplSeCode
+            , M.VHCL_SE_CODE        AS vhclSeCode
             , M.ENTRPRS_MBER_ID     AS entrprsmberId
             , M.APPLCNT_IHIDNUM     AS applcntIhidnum
             , M.APPLCNT_IHIDNUM2    AS applcntIhidnum2

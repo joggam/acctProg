@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.UnhandledAlertException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -455,6 +456,34 @@ public class HometaxService {
 
             return renamedFile;
 
+
+        } catch (UnhandledAlertException e) {
+
+            String alertText = null;
+
+            try {
+                if (e.getAlertText() != null) {
+                    alertText = e.getAlertText().trim();
+                }
+            } catch (Exception ignore) {
+                // alertText 추출 실패 시 아래 일반 메시지 사용
+            }
+
+            if (alertText != null
+                    && alertText.contains("조회된 내역이 없습니다")) {
+
+                throw new RuntimeException(
+                        "조회된 내역이 없습니다."
+                );
+            }
+
+            throw new RuntimeException(
+                    year
+                    + "년 "
+                    + quarter
+                    + "분기 다운로드 실패",
+                    e
+            );
 
         } catch (Exception e) {
 

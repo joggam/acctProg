@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.hometax.com.HometaxMain;
 import com.hometax.com.HometaxMergeParameter;
+import com.hometax.com.VatCardCondition2Classifier;
 
 import egovframework.com.cmm.web.EgovComUtlController;
 import vat.home.card.service.VatCardPurchaseService;
@@ -49,6 +50,9 @@ public class VatCardPurchaseServiceImpl extends EgovAbstractServiceImpl
 
         VatCardPurchaseVO loginInfo = getLoginInfo(bizrSeq);
 
+        VatCardCondition2Classifier.BusinessContext condition2Context =
+                buildCondition2BusinessContext(loginInfo);
+
         return HometaxMain.execute(
                 trim(loginInfo.getEntrprsmberId()),
                 decryptPassword(loginInfo),
@@ -56,7 +60,8 @@ public class VatCardPurchaseServiceImpl extends EgovAbstractServiceImpl
                 getJumin7th(loginInfo),
                 getBusinessNumber(loginInfo),
                 year,
-                quarter
+                quarter,
+                condition2Context
         );
     }
 
@@ -116,6 +121,46 @@ public class VatCardPurchaseServiceImpl extends EgovAbstractServiceImpl
                 quarter,
                 jobId
         );
+    }
+
+    /**
+     * 조건2 기업회원 단위 데이터 구성.
+     * 사업자구분/직원여부/차량구분은 기업회원관리에서 저장한 공통코드값을 그대로 사용한다.
+     */
+    private VatCardCondition2Classifier.BusinessContext buildCondition2BusinessContext(
+            VatCardPurchaseVO loginInfo) {
+
+        String bizrSeCode = trim(loginInfo.getBizrSeCode());
+        String emplSeCode = trim(loginInfo.getEmplSeCode());
+        String vhclSeCode = trim(loginInfo.getVhclSeCode());
+
+        if (!("1".equals(bizrSeCode) || "2".equals(bizrSeCode))) {
+            throw new RuntimeException(
+                    "사업자구분이 등록되지 않았거나 올바르지 않습니다. ID="
+                    + trim(loginInfo.getEntrprsmberId())
+            );
+        }
+
+        if (!("1".equals(emplSeCode) || "2".equals(emplSeCode))) {
+            throw new RuntimeException(
+                    "직원여부가 등록되지 않았거나 올바르지 않습니다. ID="
+                    + trim(loginInfo.getEntrprsmberId())
+            );
+        }
+
+        if (!("1".equals(vhclSeCode)
+                || "2".equals(vhclSeCode)
+                || "3".equals(vhclSeCode))) {
+            throw new RuntimeException(
+                    "차량구분이 등록되지 않았거나 올바르지 않습니다. ID="
+                    + trim(loginInfo.getEntrprsmberId())
+            );
+        }
+
+        return new VatCardCondition2Classifier.BusinessContext()
+                .setBizrSeCode(bizrSeCode)
+                .setEmplSeCode(emplSeCode)
+                .setVhclSeCode(vhclSeCode);
     }
 
     private VatCardPurchaseVO getLoginInfo(Long bizrSeq) {
