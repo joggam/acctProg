@@ -1,0 +1,266 @@
+.vat_condition_wrap {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 20px;
+}
+
+.vat_condition_wrap h1 {
+    margin: 0 0 22px 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.vat_condition_notice {
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    border: 1px solid #d8dee8;
+    background: #f7f9fc;
+    line-height: 1.8;
+}
+
+.vat_condition_search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding: 14px 18px;
+    border: 1px solid #d7dde6;
+    background: #f8fafc;
+}
+
+.vat_condition_search label {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.vat_condition_input,
+.vat_condition_select,
+.vat_condition_file {
+    height: 34px;
+    box-sizing: border-box;
+    border: 1px solid #bfc7d3;
+    background: #fff;
+}
+
+.vat_condition_input {
+    padding: 0 10px;
+}
+
+.vat_condition_select {
+    min-width: 140px;
+    padding: 0 28px 0 10px;
+}
+
+.vat_condition_file {
+    min-width: 420px;
+    padding: 4px 8px;
+}
+
+.vat_condition_btn_area {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    margin: 14px 0;
+}
+
+.vat_condition_btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 86px;
+    height: 36px;
+    padding: 0 18px;
+    box-sizing: border-box;
+    border: 1px solid #596579;
+    background: #fff;
+    color: #222;
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 34px;
+}
+
+.vat_condition_btn:hover {
+    text-decoration: none;
+}
+
+.vat_condition_btn_primary {
+    border-color: #334155;
+    background: #334155;
+    color: #fff;
+}
+
+.vat_condition_btn_danger {
+    border-color: #b42318;
+    color: #b42318;
+}
+
+.vat_condition_grid_area {
+    width: 100%;
+    overflow-x: auto;
+    border-top: 2px solid #3f4b5b;
+}
+
+.vat_condition_grid,
+.vat_condition_form_table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.vat_condition_grid th,
+.vat_condition_grid td,
+.vat_condition_form_table th,
+.vat_condition_form_table td {
+    padding: 10px 8px;
+    border: 1px solid #d9dee7;
+    vertical-align: middle;
+}
+
+.vat_condition_grid th,
+.vat_condition_form_table th {
+    background: #f1f4f8;
+    font-weight: 600;
+}
+
+.vat_condition_grid th,
+.vat_condition_grid td {
+    text-align: center;
+}
+
+.vat_condition_grid tbody tr:hover {
+    background: #fafbfd;
+}
+
+.vat_condition_form_table th {
+    width: 190px;
+    text-align: center;
+}
+
+.vat_condition_form_table td {
+    text-align: left;
+}
+
+.vat_condition_form_table .vat_condition_input {
+    width: 400px;
+    max-width: 100%;
+}
+
+.vat_condition_required {
+    color: #d60000;
+}
+
+.vat_condition_help {
+    margin-left: 8px;
+    color: #667085;
+    font-size: 12px;
+}
+
+.vat_condition_message {
+    margin-top: 16px;
+    padding: 12px 16px;
+    border: 1px solid #d7dde6;
+    background: #f8fafc;
+}
+
+.vat_condition_error {
+    max-height: 260px;
+    margin-top: 12px;
+    padding: 12px 16px;
+    overflow: auto;
+    border: 1px solid #f0c5c2;
+    background: #fff8f7;
+    color: #b42318;
+}
+
+.vat_condition_no_data {
+    height: 80px;
+    color: #667085;
+}
+
+.vat_condition_paging {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 32px;
+    margin-top: 20px;
+}
+
+.vat_condition_paging .pagination {
+    display: block;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+.vat_condition_paging .pagination ul {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+}
+
+.vat_condition_paging .pagination ul li {
+    display: inline-block !important;
+    float: none !important;
+    margin: 0 2px !important;
+    padding: 0 !important;
+    list-style: none !important;
+}
+
+.vat_condition_paging .pagination ul li a,
+.vat_condition_paging .pagination ul li strong {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 7px;
+    box-sizing: border-box;
+    border: 1px solid #d7dde6;
+    background: #fff;
+    color: #344054;
+    text-decoration: none;
+}
+
+.vat_condition_paging .pagination ul li strong {
+    border-color: #334155;
+    background: #334155;
+    color: #fff;
+}
+
+@media screen and (max-width: 900px) {
+    .vat_condition_search {
+        flex-wrap: wrap;
+    }
+
+    .vat_condition_file {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .vat_condition_form_table th {
+        width: 130px;
+    }
+}
+
+/* 엑셀 대량업로드 행: 파일 입력창이 버튼 영역을 침범하지 않도록 보정 */
+.vat_condition_search .vat_condition_file {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+}
+
+.vat_condition_search .vat_condition_btn {
+    flex: 0 0 auto;
+    min-width: 110px;
+    width: auto;
+    white-space: nowrap;
+    word-break: keep-all;
+    overflow: visible;
+}
