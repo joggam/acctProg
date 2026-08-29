@@ -3,21 +3,12 @@ package com.hometax.com;
 /**
  * 사업용신용카드 일반 내려받기 2.0 - 조건2 전용 분류 클래스.
  *
- * 조건2(3).xlsx 기준으로 현재 확보된 데이터만 처리한다.
- *
- * 현재 처리 가능:
- *  1. 사업자구분  : COMTNENTRPRSMBER.BIZR_SE_CODE (VAT001)
- *  2. 상대업체    : 홈택스 XLS 가맹점유형
- *  3. 직원여부    : COMTNENTRPRSMBER.EMPL_SE_CODE (VAT002)
- *  4. 차량구분    : COMTNENTRPRSMBER.VHCL_SE_CODE (VAT003)
- *  6. 금액기준    : 홈택스 XLS 공급가액
- *
- * 아직 미구현:
- *  - 조건1 DB 등록 여부/결과
- *  - 조건1 DB의 키워드 예외(142 / 811 / 822)
- *
- * 조건1이 완성되기 전까지 "조건1" 자리는 조건2 5번의 등록 X 값
- * (공제 / 57 / 830)을 임시 기본값으로 사용한다.
+ * 핵심 순서:
+ *  1) prepare()에서 조건2부터 판정한다.
+ *  2) 조건2만으로 종료 가능한 경우 즉시 종료한다.
+ *  3) 조건2가 조건1 등록여부/값/키워드를 요구하는 경우에만
+ *     호출측에서 조건1을 조회한다.
+ *  4) finish()에서 조건2 우선순위를 유지하며 최종값을 만든다.
  */
 public final class VatCardCondition2Classifier {
 
@@ -68,11 +59,6 @@ public final class VatCardCondition2Classifier {
             return this;
         }
 
-        /**
-         * 조건1 DB 등록 여부.
-         * 아직 조건1 DB 미구현 상태에서는 null로 유지한다.
-         * false일 때만 조건2 표의 5번 등록 X 주황색을 적용한다.
-         */
         public Boolean getCondition1Registered() {
             return condition1Registered;
         }
@@ -88,6 +74,12 @@ public final class VatCardCondition2Classifier {
         private String merchantType;
         private String merchantName;
         private double supplyAmount;
+
+        // 조건1이 실제로 필요할 때만 사용한다.
+        private String bizcnd;
+        private String induty;
+        private boolean bizcndColumnAvailable;
+        private boolean indutyColumnAvailable;
 
         public String getMerchantType() {
             return merchantType;
@@ -115,6 +107,166 @@ public final class VatCardCondition2Classifier {
             this.supplyAmount = supplyAmount;
             return this;
         }
+
+        public String getBizcnd() {
+            return bizcnd;
+        }
+
+        public RowContext setBizcnd(String bizcnd) {
+            this.bizcnd = trim(bizcnd);
+            return this;
+        }
+
+        public String getInduty() {
+            return induty;
+        }
+
+        public RowContext setInduty(String induty) {
+            this.induty = trim(induty);
+            return this;
+        }
+
+        public boolean isBizcndColumnAvailable() {
+            return bizcndColumnAvailable;
+        }
+
+        public RowContext setBizcndColumnAvailable(boolean bizcndColumnAvailable) {
+            this.bizcndColumnAvailable = bizcndColumnAvailable;
+            return this;
+        }
+
+        public boolean isIndutyColumnAvailable() {
+            return indutyColumnAvailable;
+        }
+
+        public RowContext setIndutyColumnAvailable(boolean indutyColumnAvailable) {
+            this.indutyColumnAvailable = indutyColumnAvailable;
+            return this;
+        }
+    }
+
+    /**
+     * 조건2를 먼저 판정한 결과.
+     * 이 단계에서는 조건1 DB를 조회하지 않는다.
+     */
+    public static final class Plan {
+        private boolean terminal;
+        private Result terminalResult;
+
+        private boolean needCondition1Registration;
+        private boolean corpKeyword;
+        private boolean employeeKeyword;
+        private boolean vehicleKeyword;
+
+        private boolean vatDeductionOverrideSet;
+        private String vatDeductionOverride;
+
+        private boolean vatTypeOverrideSet;
+        private Integer vatTypeOverride;
+
+        private RowColor rowColor = RowColor.NONE;
+
+        public boolean isTerminal() {
+            return terminal;
+        }
+
+        public Result getTerminalResult() {
+            return terminalResult;
+        }
+
+        public boolean isNeedCondition1Registration() {
+            return needCondition1Registration;
+        }
+
+        public boolean isCorpKeyword() {
+            return corpKeyword;
+        }
+
+        public boolean isEmployeeKeyword() {
+            return employeeKeyword;
+        }
+
+        public boolean isVehicleKeyword() {
+            return vehicleKeyword;
+        }
+
+        public RowColor getRowColor() {
+            return rowColor;
+        }
+    }
+
+    /** 조건1 조회 완료값. */
+    public static final class Condition1Context {
+        private boolean registered;
+        private String vatDeduction;
+        private Integer vatType;
+        private Integer accountCode;
+        private Integer corpKeywordAccount;
+        private Integer employeeKeywordAccount;
+        private Integer vehicleKeywordAccount;
+
+        public boolean isRegistered() {
+            return registered;
+        }
+
+        public Condition1Context setRegistered(boolean registered) {
+            this.registered = registered;
+            return this;
+        }
+
+        public String getVatDeduction() {
+            return vatDeduction;
+        }
+
+        public Condition1Context setVatDeduction(String vatDeduction) {
+            this.vatDeduction = vatDeduction;
+            return this;
+        }
+
+        public Integer getVatType() {
+            return vatType;
+        }
+
+        public Condition1Context setVatType(Integer vatType) {
+            this.vatType = vatType;
+            return this;
+        }
+
+        public Integer getAccountCode() {
+            return accountCode;
+        }
+
+        public Condition1Context setAccountCode(Integer accountCode) {
+            this.accountCode = accountCode;
+            return this;
+        }
+
+        public Integer getCorpKeywordAccount() {
+            return corpKeywordAccount;
+        }
+
+        public Condition1Context setCorpKeywordAccount(Integer corpKeywordAccount) {
+            this.corpKeywordAccount = corpKeywordAccount;
+            return this;
+        }
+
+        public Integer getEmployeeKeywordAccount() {
+            return employeeKeywordAccount;
+        }
+
+        public Condition1Context setEmployeeKeywordAccount(Integer employeeKeywordAccount) {
+            this.employeeKeywordAccount = employeeKeywordAccount;
+            return this;
+        }
+
+        public Integer getVehicleKeywordAccount() {
+            return vehicleKeywordAccount;
+        }
+
+        public Condition1Context setVehicleKeywordAccount(Integer vehicleKeywordAccount) {
+            this.vehicleKeywordAccount = vehicleKeywordAccount;
+            return this;
+        }
     }
 
     /** null은 엑셀에서 빈 셀로 기록한다. */
@@ -128,7 +280,12 @@ public final class VatCardCondition2Classifier {
             this(vatDeduction, vatType, accountCode, RowColor.NONE);
         }
 
-        public Result(String vatDeduction, Integer vatType, Integer accountCode, RowColor rowColor) {
+        public Result(
+                String vatDeduction,
+                Integer vatType,
+                Integer accountCode,
+                RowColor rowColor) {
+
             this.vatDeduction = vatDeduction;
             this.vatType = vatType;
             this.accountCode = accountCode;
@@ -159,13 +316,15 @@ public final class VatCardCondition2Classifier {
             this.vatType = vatType;
         }
 
+        private void setAccountCode(Integer accountCode) {
+            this.accountCode = accountCode;
+        }
+
         private void setRowColor(RowColor rowColor) {
             this.rowColor = rowColor == null ? RowColor.NONE : rowColor;
         }
     }
 
-
-    /** 조건2 표의 ROW 색 컬럼을 그대로 표현한다. */
     public enum RowColor {
         NONE,
         YELLOW,
@@ -173,114 +332,252 @@ public final class VatCardCondition2Classifier {
         GREEN
     }
 
-    public static Result classify(BusinessContext business, RowContext row) {
+    /**
+     * 1단계: 조건2부터 판정.
+     * 조건1 DB 조회는 절대 하지 않는다.
+     */
+    public static Plan prepare(
+            BusinessContext business,
+            RowContext row) {
+
         if (business == null) {
             business = new BusinessContext();
         }
+
         if (row == null) {
             row = new RowContext();
         }
 
-        // 기존 1.0 시그니처를 직접 호출하는 코드와의 호환용.
-        // 실제 일반 내려받기 흐름은 ServiceImpl에서 3개 코드를 필수 검증한 뒤
-        // 값이 채워진 BusinessContext를 전달한다.
-        if (isEmpty(business.getBizrSeCode())
-                && isEmpty(business.getEmplSeCode())
-                && isEmpty(business.getVhclSeCode())) {
-            return new Result("공제", Integer.valueOf(57), Integer.valueOf(830), RowColor.NONE);
-        }
-
         validateBusinessContext(business);
 
-        // -----------------------------------------------------
-        // 조건1 임시값
-        // 조건2 5번 '등록 X' = 공제 / 57 / 830
-        // 조건1 DB 구현 시 이 시작값을 조건1 조회 결과로 교체한다.
-        // -----------------------------------------------------
-        Result result = new Result(
-                "공제",
-                Integer.valueOf(57),
-                Integer.valueOf(830),
-                RowColor.YELLOW
-        );
+        Plan plan = new Plan();
 
         // -----------------------------------------------------
-        // 1번 사업자
-        // 법인 : 불공제 / null / 조건1
-        // 개인 : null / null / null
-        // 개인은 표의 값 그대로 여기서 종료한다.
-        // 키워드 142 분기는 조건1 키워드 DB 구현 시 연결한다.
+        // 조건2 #1 사업자
+        // 개인 = null / null / null, 노란색 -> 여기서 종료
         // -----------------------------------------------------
         if (BIZR_PERSONAL.equals(business.getBizrSeCode())) {
-            return new Result(null, null, null, RowColor.YELLOW);
+            plan.terminal = true;
+            plan.terminalResult =
+                    new Result(
+                            null,
+                            null,
+                            null,
+                            RowColor.YELLOW
+                    );
+            return plan;
         }
 
-        if (BIZR_CORPORATE.equals(business.getBizrSeCode())) {
-            result.setVatDeduction("불공제");
-            result.setVatType(null);
-        }
+        // 법인 = 불공제 / null / (키워드 142, 그 외 조건1)
+        plan.rowColor = RowColor.YELLOW;
+        plan.vatDeductionOverrideSet = true;
+        plan.vatDeductionOverride = "불공제";
+        plan.vatTypeOverrideSet = true;
+        plan.vatTypeOverride = null;
+        plan.corpKeyword = true;
 
         // -----------------------------------------------------
-        // 2번 상대(결제)업체
-        // 법인/일반 : 조건1 -> 현재값 유지
-        // 간이/면세 : 불공제 / null / 조건1
+        // 조건2 #2 상대(결제)업체
+        // 간이/면세 = 불공제 / null / 조건1
+        // 법인/일반 = 조건1
+        //
+        // 현재 기존 조건2 우선순위를 그대로 유지한다.
         // -----------------------------------------------------
         if (isSimplifiedOrExempt(row.getMerchantType())) {
-            result.setVatDeduction("불공제");
-            result.setVatType(null);
+            plan.vatDeductionOverrideSet = true;
+            plan.vatDeductionOverride = "불공제";
+            plan.vatTypeOverrideSet = true;
+            plan.vatTypeOverride = null;
         }
 
         // -----------------------------------------------------
-        // 3번 직원
-        // 직원 O : 부가세 2개는 조건1, 일부 키워드만 811
-        // 직원 X : 조건1
-        // 현재는 키워드 DB가 없으므로 직원값 자체로는 변경하지 않는다.
-        // 다만 EMPL_SE_CODE 값은 위 validate에서 검증한다.
+        // 조건2 #3 직원
+        // 직원 O = 계정과목 일부만 키워드 811
         // -----------------------------------------------------
-        @SuppressWarnings("unused")
-        boolean employeePresent = EMPLOYEE_YES.equals(business.getEmplSeCode());
+        if (EMPLOYEE_YES.equals(business.getEmplSeCode())) {
+            plan.employeeKeyword = true;
+        }
 
         // -----------------------------------------------------
-        // 4번 차량
-        // 차량 X       : 조건1
-        // 불공차량 O   : 조건1, 일부 키워드만 822
-        // 공제차량 O   : 공제 / 57 / 조건1, 일부 키워드만 822
-        // 현재 822 키워드 분기는 조건1 DB 구현 시 연결한다.
+        // 조건2 #4 차량
+        // 불공차량 O = 계정과목 일부만 키워드 822
+        // 공제차량 O = 공제 / 57 / 계정과목 일부만 키워드 822
         // -----------------------------------------------------
+        if (VEHICLE_NON_DEDUCTIBLE.equals(business.getVhclSeCode())
+                || VEHICLE_DEDUCTIBLE.equals(business.getVhclSeCode())) {
+            plan.vehicleKeyword = true;
+        }
+
         if (VEHICLE_DEDUCTIBLE.equals(business.getVhclSeCode())) {
-            result.setVatDeduction("공제");
-            result.setVatType(Integer.valueOf(57));
+            plan.vatDeductionOverrideSet = true;
+            plan.vatDeductionOverride = "공제";
+            plan.vatTypeOverrideSet = true;
+            plan.vatTypeOverride = Integer.valueOf(57);
         }
 
         // -----------------------------------------------------
-        // 5번 등록유무 - ROW 색
-        // 등록 O : X
-        // 등록 X : 주황색
-        // 현재 조건1 DB가 아직 없으므로 condition1Registered=null 상태에서는
-        // 주황색을 임의 적용하지 않는다. 조건1 연결 시 false인 경우에만 적용한다.
+        // 조건2 #5 등록유무
+        // 법인 ROW에서는 등록 O/X 확인이 필요하다.
+        // 이 플래그를 확인한 뒤 호출측이 조건1을 조회한다.
         // -----------------------------------------------------
-        if (Boolean.FALSE.equals(business.getCondition1Registered())) {
-            result.setRowColor(RowColor.ORANGE);
+        plan.needCondition1Registration = true;
+
+        // -----------------------------------------------------
+        // 조건2 #6 금액기준
+        // 100만원 초과 = 초록색.
+        // 색은 뒤 조건이므로 앞 색보다 우선한다.
+        // -----------------------------------------------------
+        if (row.getSupplyAmount() > 1000000d) {
+            plan.rowColor = RowColor.GREEN;
+        }
+
+        return plan;
+    }
+
+    /**
+     * 2단계: 조건2 판정 후 필요한 조건1 조회까지 끝난 상태에서 최종값 생성.
+     */
+    public static Result finish(
+            Plan plan,
+            Condition1Context condition1) {
+
+        if (plan == null) {
+            throw new IllegalArgumentException(
+                    "조건2 Plan이 없습니다."
+            );
+        }
+
+        if (plan.isTerminal()) {
+            return plan.getTerminalResult();
+        }
+
+        if (condition1 == null) {
+            throw new IllegalArgumentException(
+                    "조건2가 조건1 판정을 요구하지만 Condition1Context가 없습니다."
+            );
         }
 
         // -----------------------------------------------------
-        // 6번 금액기준
-        // 100만 이하 / 100만 초과 모두 현재 표에서는 조건1이므로
-        // 값은 변경하지 않는다. 공급가액은 실제로 읽어 두며,
-        // 향후 금액별 예외가 추가되면 여기서 사용한다.
+        // 조건2 #5 등록 X
+        // 공제 / 57 / 830, 주황색
+        // 단 #6 100만원 초과 초록색이 최종 우선
         // -----------------------------------------------------
-        boolean overOneMillion = row.getSupplyAmount() > 1000000d;
+        if (!condition1.isRegistered()) {
+            RowColor color =
+                    plan.getRowColor() == RowColor.GREEN
+                            ? RowColor.GREEN
+                            : RowColor.ORANGE;
 
-        // 조건2 표 6번: 공급가액 100만원 초과 = 초록색.
-        // 여러 색 조건이 겹치면 표의 뒤 조건(6번)이 최종 ROW 색을 덮어쓴다.
-        if (overOneMillion) {
-            result.setRowColor(RowColor.GREEN);
+            return new Result(
+                    "공제",
+                    Integer.valueOf(57),
+                    Integer.valueOf(830),
+                    color
+            );
+        }
+
+        // 등록 O이면 조건1 값에서 시작.
+        Result result =
+                new Result(
+                        condition1.getVatDeduction(),
+                        condition1.getVatType(),
+                        condition1.getAccountCode(),
+                        plan.getRowColor()
+                );
+
+        // 조건2 직접값은 조건1보다 우선.
+        if (plan.vatDeductionOverrideSet) {
+            result.setVatDeduction(
+                    plan.vatDeductionOverride
+            );
+        }
+
+        if (plan.vatTypeOverrideSet) {
+            result.setVatType(
+                    plan.vatTypeOverride
+            );
+        }
+
+        // -----------------------------------------------------
+        // 계정과목 키워드
+        // 조건2 표 순서 #1 -> #3 -> #4 순으로 적용.
+        // 뒤 조건이 일치하면 앞 키워드 결과를 덮어쓴다.
+        // -----------------------------------------------------
+        if (plan.isCorpKeyword()
+                && condition1.getCorpKeywordAccount() != null) {
+            result.setAccountCode(
+                    condition1.getCorpKeywordAccount()
+            );
+        }
+
+        if (plan.isEmployeeKeyword()
+                && condition1.getEmployeeKeywordAccount() != null) {
+            result.setAccountCode(
+                    condition1.getEmployeeKeywordAccount()
+            );
+        }
+
+        if (plan.isVehicleKeyword()
+                && condition1.getVehicleKeywordAccount() != null) {
+            result.setAccountCode(
+                    condition1.getVehicleKeywordAccount()
+            );
         }
 
         return result;
     }
 
-    private static void validateBusinessContext(BusinessContext business) {
+    /**
+     * 기존 호출 호환용.
+     * 조건1이 연결되지 않은 코드에서 호출될 경우 기존 임시값을 유지한다.
+     * 실제 일반 내려받기는 VatCardDownloadClassifier를 통해 prepare -> 조건1 -> finish 순서로 간다.
+     */
+    public static Result classify(
+            BusinessContext business,
+            RowContext row) {
+
+        if (business == null) {
+            business = new BusinessContext();
+        }
+
+        if (row == null) {
+            row = new RowContext();
+        }
+
+        if (isEmpty(business.getBizrSeCode())
+                && isEmpty(business.getEmplSeCode())
+                && isEmpty(business.getVhclSeCode())) {
+            return new Result(
+                    "공제",
+                    Integer.valueOf(57),
+                    Integer.valueOf(830),
+                    RowColor.NONE
+            );
+        }
+
+        Plan plan = prepare(business, row);
+
+        if (plan.isTerminal()) {
+            return plan.getTerminalResult();
+        }
+
+        Condition1Context temporary =
+                new Condition1Context()
+                        .setRegistered(
+                                !Boolean.FALSE.equals(
+                                        business.getCondition1Registered()
+                                )
+                        )
+                        .setVatDeduction("공제")
+                        .setVatType(Integer.valueOf(57))
+                        .setAccountCode(Integer.valueOf(830));
+
+        return finish(plan, temporary);
+    }
+
+    private static void validateBusinessContext(
+            BusinessContext business) {
+
         if (!BIZR_CORPORATE.equals(business.getBizrSeCode())
                 && !BIZR_PERSONAL.equals(business.getBizrSeCode())) {
             throw new IllegalArgumentException(
@@ -309,7 +606,8 @@ public final class VatCardCondition2Classifier {
 
     private static boolean isSimplifiedOrExempt(String merchantType) {
         String value = trim(merchantType).replace(" ", "");
-        return value.contains("간이") || value.contains("면세");
+        return value.contains("간이")
+                || value.contains("면세");
     }
 
     private static boolean isEmpty(String value) {

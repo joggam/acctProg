@@ -49,6 +49,31 @@ public class HometaxMain {
             int quarter,
             VatCardCondition2Classifier.BusinessContext condition2BusinessContext) throws Exception {
 
+        return execute(
+                hometaxId,
+                hometaxPassword,
+                juminFirst6,
+                jumin7th,
+                businessNumber,
+                year,
+                quarter,
+                condition2BusinessContext,
+                null
+        );
+    }
+
+
+    public static File execute(
+            String hometaxId,
+            String hometaxPassword,
+            String juminFirst6,
+            String jumin7th,
+            String businessNumber,
+            int year,
+            int quarter,
+            VatCardCondition2Classifier.BusinessContext condition2BusinessContext,
+            VatCardDownloadClassifier downloadClassifier) throws Exception {
+
         WebDriver driver = null;
 
         try {
@@ -98,7 +123,8 @@ public class HometaxMain {
             // 기존 내려받기 기능은 기존 로직 그대로 유지
             return ExcelTitleCopy.copyExcelByTitle(
                     excelFile,
-                    condition2BusinessContext
+                    condition2BusinessContext,
+                    downloadClassifier
             );
 
         } finally {

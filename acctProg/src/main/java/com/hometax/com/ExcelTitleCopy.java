@@ -100,6 +100,19 @@ public class ExcelTitleCopy {
             File sourceFile,
             VatCardCondition2Classifier.BusinessContext condition2BusinessContext) throws Exception {
 
+        return copyExcelByTitle(
+                sourceFile,
+                condition2BusinessContext,
+                null
+        );
+    }
+
+
+    public static File copyExcelByTitle(
+            File sourceFile,
+            VatCardCondition2Classifier.BusinessContext condition2BusinessContext,
+            VatCardDownloadClassifier downloadClassifier) throws Exception {
+
 
         if (sourceFile == null) {
 
@@ -1018,14 +1031,56 @@ public class ExcelTitleCopy {
                                                 "공급가액",
                                                 formatter
                                         )
+                                )
+                                .setBizcnd(
+                                        getSourceValueByAnyTitle(
+                                                sourceRow,
+                                                sourceColumnByTitle,
+                                                formatter,
+                                                "업태",
+                                                "업태명"
+                                        )
+                                )
+                                .setInduty(
+                                        getSourceValueByAnyTitle(
+                                                sourceRow,
+                                                sourceColumnByTitle,
+                                                formatter,
+                                                "업종",
+                                                "업종명"
+                                        )
+                                )
+                                .setBizcndColumnAvailable(
+                                        hasSourceTitle(
+                                                sourceColumnByTitle,
+                                                "업태",
+                                                "업태명"
+                                        )
+                                )
+                                .setIndutyColumnAvailable(
+                                        hasSourceTitle(
+                                                sourceColumnByTitle,
+                                                "업종",
+                                                "업종명"
+                                        )
                                 );
 
 
-                VatCardCondition2Classifier.Result condition2Result =
-                        VatCardCondition2Classifier.classify(
-                                condition2BusinessContext,
-                                rowContext
-                        );
+                VatCardCondition2Classifier.Result condition2Result;
+
+                if (downloadClassifier != null) {
+                    condition2Result =
+                            downloadClassifier.classify(
+                                    condition2BusinessContext,
+                                    rowContext
+                            );
+                } else {
+                    condition2Result =
+                            VatCardCondition2Classifier.classify(
+                                    condition2BusinessContext,
+                                    rowContext
+                            );
+                }
 
 
                 setNullableTextValue(
@@ -1470,6 +1525,67 @@ public class ExcelTitleCopy {
     // =========================================================
     // SOURCE 조건값 조회
     // =========================================================
+
+    private static boolean hasSourceTitle(
+            Map<String, Integer> sourceColumnByTitle,
+            String... titles) {
+
+        if (sourceColumnByTitle == null
+                || titles == null) {
+            return false;
+        }
+
+        for (String title : titles) {
+            if (sourceColumnByTitle.containsKey(
+                    normalizeTitle(title))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    private static String getSourceValueByAnyTitle(
+            Row row,
+            Map<String, Integer> sourceColumnByTitle,
+            DataFormatter formatter,
+            String... titles) {
+
+        if (titles == null) {
+            return "";
+        }
+
+        for (String title : titles) {
+            String normalizedTitle =
+                    normalizeTitle(title);
+
+            Integer columnIndex =
+                    sourceColumnByTitle.get(
+                            normalizedTitle
+                    );
+
+            if (columnIndex == null) {
+                continue;
+            }
+
+            Cell cell =
+                    row.getCell(
+                            columnIndex
+                    );
+
+            if (cell == null) {
+                return "";
+            }
+
+            return formatter
+                    .formatCellValue(cell)
+                    .trim();
+        }
+
+        return "";
+    }
+
 
     private static String getSourceValueByTitle(
             Row row,

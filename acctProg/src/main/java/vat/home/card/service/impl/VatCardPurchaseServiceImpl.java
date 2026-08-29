@@ -11,9 +11,12 @@ import org.springframework.stereotype.Service;
 
 import com.hometax.com.HometaxMain;
 import com.hometax.com.HometaxMergeParameter;
+import com.hometax.com.VatCardCondition1Classifier;
 import com.hometax.com.VatCardCondition2Classifier;
+import com.hometax.com.VatCardDownloadClassifier;
 
 import egovframework.com.cmm.web.EgovComUtlController;
+import vat.home.card.service.VatCardCondition1Service;
 import vat.home.card.service.VatCardPurchaseService;
 import vat.home.card.service.VatCardPurchaseVO;
 
@@ -23,6 +26,9 @@ public class VatCardPurchaseServiceImpl extends EgovAbstractServiceImpl
 
     @Resource(name = "vatCardPurchaseDAO")
     private VatCardPurchaseDAO vatCardPurchaseDAO;
+
+    @Resource(name = "vatCardCondition1Service")
+    private VatCardCondition1Service vatCardCondition1Service;
 
     @Override
     public List<VatCardPurchaseVO> selectEntrprsMberList(
@@ -53,6 +59,16 @@ public class VatCardPurchaseServiceImpl extends EgovAbstractServiceImpl
         VatCardCondition2Classifier.BusinessContext condition2Context =
                 buildCondition2BusinessContext(loginInfo);
 
+        VatCardCondition1Classifier condition1Classifier =
+                new VatCardCondition1Classifier(
+                        vatCardCondition1Service
+                );
+
+        VatCardDownloadClassifier downloadClassifier =
+                new VatCardDownloadClassifier(
+                        condition1Classifier
+                );
+
         return HometaxMain.execute(
                 trim(loginInfo.getEntrprsmberId()),
                 decryptPassword(loginInfo),
@@ -61,7 +77,8 @@ public class VatCardPurchaseServiceImpl extends EgovAbstractServiceImpl
                 getBusinessNumber(loginInfo),
                 year,
                 quarter,
-                condition2Context
+                condition2Context,
+                downloadClassifier
         );
     }
 
