@@ -34,6 +34,7 @@ public class VatCardCondition1DAO extends EgovAbstractMapper {
     public void insertKeyword(VatCardCondition1KeywordVO vo) { insert("vatCardCondition1DAO.insertKeyword", vo); }
     public void updateKeyword(VatCardCondition1KeywordVO vo) { update("vatCardCondition1DAO.updateKeyword", vo); }
     public void deleteKeyword(Long seq) { delete("vatCardCondition1DAO.deleteKeyword", seq); }
+    public void upsertKeyword(VatCardCondition1KeywordVO vo) { insert("vatCardCondition1DAO.upsertKeyword", vo); }
 
     public VatCardCondition1VO selectMatch(String bizcnd, String induty) {
         Map<String, Object> p = new HashMap<String, Object>(); p.put("bizcnd", bizcnd); p.put("induty", induty);

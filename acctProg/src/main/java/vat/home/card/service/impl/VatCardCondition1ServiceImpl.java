@@ -32,6 +32,8 @@ public class VatCardCondition1ServiceImpl extends EgovAbstractServiceImpl implem
     public void insertKeyword(VatCardCondition1KeywordVO vo) { dao.insertKeyword(vo); }
     public void updateKeyword(VatCardCondition1KeywordVO vo) { dao.updateKeyword(vo); }
     public void deleteKeyword(Long seq) { dao.deleteKeyword(seq); }
+    @Transactional
+    public void saveKeywordExcel(VatCardCondition1KeywordVO vo) { dao.upsertKeyword(vo); }
     public VatCardCondition1VO selectMatch(String bizcnd, String induty) { return dao.selectMatch(bizcnd, induty); }
     public VatCardCondition1KeywordVO selectKeywordMatch(String keywordType, String targetType, String keyword) { return dao.selectKeywordMatch(keywordType, targetType, keyword); }
 }

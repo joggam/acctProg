@@ -8,26 +8,79 @@
 <link rel="stylesheet" href="<c:url value='/css/egovframework/com/com.css'/>">
 <link rel="stylesheet" href="<c:url value='/css/vat/home/card/VatCardCondition1.css'/>">
 <script>
-function syncAccount(){var t=document.getElementById('keywordType').value;document.getElementById('accountCode').value=t==='CORP'?'142':t==='EMPLOYEE'?'811':t==='VEHICLE'?'822':'';}
-function fnDelete(){if(confirm('삭제하시겠습니까?')) location.href='<c:url value="/vat/home/card/keyword/delete.do"/>?keywordSeq=${keywordVO.keywordSeq}';}
+function fnDelete(){
+    if(confirm('삭제하시겠습니까?')){
+        location.href='<c:url value="/vat/home/card/keyword/delete.do"/>?keywordSeq=${keywordVO.keywordSeq}';
+    }
+}
 </script>
 </head>
 <body>
 <div id="content" class="vat_condition_wrap">
     <h1>조건1 키워드 등록/수정</h1>
+
     <form method="post" action="<c:url value='/vat/home/card/keyword/save.do'/>">
         <input type="hidden" name="keywordSeq" value="${keywordVO.keywordSeq}">
-        <table class="vat_condition_form_table">
-            <tr><th>조건2 키워드 구분 <span class="vat_condition_required">*</span></th><td><select class="vat_condition_select" name="keywordType" id="keywordType" onchange="syncAccount()" required><option value="">선택</option><option value="CORP" <c:if test="${keywordVO.keywordType eq 'CORP'}">selected</c:if>>1번 사업자-법인 (142)</option><option value="EMPLOYEE" <c:if test="${keywordVO.keywordType eq 'EMPLOYEE'}">selected</c:if>>3번 직원 O (811)</option><option value="VEHICLE" <c:if test="${keywordVO.keywordType eq 'VEHICLE'}">selected</c:if>>4번 차량 O (822)</option></select></td></tr>
-            <tr><th>적용대상 <span class="vat_condition_required">*</span></th><td><select class="vat_condition_select" name="targetType" required><option value="BIZCND" <c:if test="${keywordVO.targetType eq 'BIZCND'}">selected</c:if>>업태</option><option value="INDUTY" <c:if test="${keywordVO.targetType eq 'INDUTY'}">selected</c:if>>업종</option></select></td></tr>
-            <tr><th>키워드 <span class="vat_condition_required">*</span></th><td><input class="vat_condition_input" type="text" name="keyword" value="<c:out value='${keywordVO.keyword}'/>" maxlength="200" required><span class="vat_condition_help">완전일치</span></td></tr>
-            <tr><th>계정과목 <span class="vat_condition_required">*</span></th><td><input class="vat_condition_input" type="text" id="accountCode" name="accountCode" value="<c:out value='${keywordVO.accountCode}'/>" maxlength="20" required><span class="vat_condition_help">CORP=142 / EMPLOYEE=811 / VEHICLE=822</span></td></tr>
-            <tr><th>사용여부</th><td><select class="vat_condition_select" name="useAt"><option value="Y" <c:if test="${keywordVO.useAt eq 'Y'}">selected</c:if>>사용</option><option value="N" <c:if test="${keywordVO.useAt eq 'N'}">selected</c:if>>미사용</option></select></td></tr>
-        </table>
+
+        <div class="vat_condition_grid_area">
+            <table class="vat_condition_form_table">
+                <tr>
+                    <th>키워드구분 *</th>
+                    <td>
+                        <select class="vat_condition_select" name="keywordType" id="keywordType" required>
+                            <option value="">선택</option>
+                            <c:forEach var="code" items="${keywordType_result}">
+                                <option value="<c:out value='${code.code}'/>"
+                                    <c:if test="${keywordVO.keywordType eq code.code}">selected</c:if>>
+                                    <c:out value="${code.codeNm}"/>
+                                </option>
+                            </c:forEach>
+                        </select>
+                        <span class="vat_condition_help">공통코드 VAT004</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>적용대상 *</th>
+                    <td>
+                        <select class="vat_condition_select" name="targetType" required>
+                            <option value="BIZCND" <c:if test="${keywordVO.targetType eq 'BIZCND'}">selected</c:if>>업태</option>
+                            <option value="INDUTY" <c:if test="${keywordVO.targetType eq 'INDUTY'}">selected</c:if>>업종</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th>키워드 *</th>
+                    <td>
+                        <input class="vat_condition_input" type="text" name="keyword"
+                               value="<c:out value='${keywordVO.keyword}'/>" maxlength="200" required>
+                        <span class="vat_condition_help">완전일치</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>계정과목 *</th>
+                    <td>
+                        <input class="vat_condition_input" type="text" id="accountCode" name="accountCode"
+                               value="<c:out value='${keywordVO.accountCode}'/>" maxlength="20" required>
+                    </td>
+                </tr>
+                <tr>
+                    <th>사용여부</th>
+                    <td>
+                        <select class="vat_condition_select" name="useAt">
+                            <option value="Y" <c:if test="${empty keywordVO.useAt or keywordVO.useAt eq 'Y'}">selected</c:if>>사용</option>
+                            <option value="N" <c:if test="${keywordVO.useAt eq 'N'}">selected</c:if>>미사용</option>
+                        </select>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
         <div class="vat_condition_btn_area">
-            <button type="button" class="vat_condition_btn" onclick="location.href='<c:url value="/vat/home/card/keyword/list.do"/>'">목록</button>
-            <c:if test="${not empty keywordVO.keywordSeq}"><button type="button" class="vat_condition_btn vat_condition_btn_danger" onclick="fnDelete()">삭제</button></c:if>
-            <button type="submit" class="vat_condition_btn vat_condition_btn_primary">저장</button>
+            <a class="vat_condition_btn" href="<c:url value='/vat/home/card/keyword/list.do'/>">목록</a>
+            <c:if test="${not empty keywordVO.keywordSeq}">
+                <button class="vat_condition_btn" type="button" onclick="fnDelete()">삭제</button>
+            </c:if>
+            <button class="vat_condition_btn vat_condition_btn_primary" type="submit">저장</button>
         </div>
     </form>
 </div>

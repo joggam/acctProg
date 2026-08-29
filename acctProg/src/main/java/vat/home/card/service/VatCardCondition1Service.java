@@ -17,6 +17,7 @@ public interface VatCardCondition1Service {
     void insertKeyword(VatCardCondition1KeywordVO vo) throws Exception;
     void updateKeyword(VatCardCondition1KeywordVO vo) throws Exception;
     void deleteKeyword(Long keywordSeq) throws Exception;
+    void saveKeywordExcel(VatCardCondition1KeywordVO vo) throws Exception;
 
     VatCardCondition1VO selectMatch(String bizcnd, String induty) throws Exception;
     VatCardCondition1KeywordVO selectKeywordMatch(String keywordType, String targetType, String keyword) throws Exception;

@@ -66,6 +66,11 @@
                ACCOUNT_CODE=#{accountCode},USE_AT=#{useAt},LAST_UPDT_PNTTM=NOW() WHERE KEYWORD_SEQ=#{keywordSeq}
     </update>
     <delete id="deleteKeyword" parameterType="long">DELETE FROM VAT_CARD_CONDITION1_KEYWORD WHERE KEYWORD_SEQ=#{value}</delete>
+    <insert id="upsertKeyword" parameterType="vat.home.card.service.VatCardCondition1KeywordVO">
+        INSERT INTO VAT_CARD_CONDITION1_KEYWORD(KEYWORD_TYPE,TARGET_TYPE,KEYWORD,ACCOUNT_CODE,USE_AT,FRST_REGIST_PNTTM)
+        VALUES(#{keywordType},#{targetType},#{keyword},#{accountCode},#{useAt},NOW())
+        ON DUPLICATE KEY UPDATE ACCOUNT_CODE=VALUES(ACCOUNT_CODE), USE_AT=VALUES(USE_AT), LAST_UPDT_PNTTM=NOW()
+    </insert>
 
     <select id="selectMatch" parameterType="map" resultType="vat.home.card.service.VatCardCondition1VO">
         SELECT CONDITION1_SEQ condition1Seq, BIZCND bizcnd, INDUTY induty, VAT_DEDUCT_YN vatDeductYn,
